@@ -19,7 +19,7 @@ The [23 October audit](AUDIT-2026-10-23.md) records the earlier implementation. 
 
 ## Migration and release notes
 
-Apply `006_operational_integrity.sql` then `007_durable_eta.sql` in a dedicated staging project first. The unique active-assignment index intentionally fails if existing live assignments conflict. Before migrating a populated project, run:
+Apply `006_operational_integrity.sql` then `007_durable_eta.sql` and `008_rpc_permissions.sql` in a dedicated staging project first. The unique active-assignment index intentionally fails if existing live assignments conflict. Before migrating a populated project, run:
 
 ```sql
 select tenant_id,vehicle_id,count(*) from jobs
@@ -33,7 +33,7 @@ Dispatch now uses `create_transport_job` / `dispatch_job` RPCs; direct authentic
 
 Publication policy is deliberately strict: each new GPS/route ETA version requires review before customer publication, and expires after 15 minutes or when its GPS source reaches 30 minutes of age, whichever comes first. Controllers see pending/unavailable/stale states. This favors honest publication over uninterrupted ETA availability; MCY must review this policy before a live pilot.
 
-Configure an external scheduler to POST `/api/worker` every minute and `/api/monitor` every five minutes using `Authorization: Bearer $CRON_SECRET`. Both secrets require at least 32 characters. Ingestion returns receipt/queue acceptance, not completed ETA processing. Worker failures retain work for retry; five unsuccessful attempts or expired final leases become failed work. Operational queue review/requeue UI and alert lifecycle improvements remain follow-up work. A scheduler and real tracking provider have not been deployed by this change.
+Configure an external scheduler to POST `/api/worker` every minute and `/api/monitor` every five minutes using `Authorization: Bearer $CRON_SECRET`. Worker/webhook secrets require at least 32 characters. Set `APP_ORIGIN` to the canonical application URL so browser-origin validation works correctly behind the host proxy. Ingestion returns receipt/queue acceptance, not completed ETA processing. Worker failures retain work for retry; five unsuccessful attempts or expired final leases become failed work. Operational queue review/requeue UI and alert lifecycle improvements remain follow-up work. A scheduler and real tracking provider have not been deployed by this change.
 
 To explicitly run the fictional production-style demo: `DEMO_MODE=true npm run start` after building. Production without Supabase configuration and without that opt-in displays a configuration failure instead of fictional operations.
 

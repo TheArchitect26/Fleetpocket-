@@ -1,5 +1,7 @@
 # Delivery status and remaining work
 
+The audit-follow-up implementation is tracked in [REMEDIATION.md](REMEDIATION.md). The table and test counts below describe the earlier baseline; consult that milestone and the latest PR checks for current behavior.
+
 Implemented across all six phases, with scope limits below. This is not yet production approved.
 
 | Phase | Implemented | Remaining |

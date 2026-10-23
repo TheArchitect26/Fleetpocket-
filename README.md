@@ -9,10 +9,10 @@ Use Node.js 22 LTS or newer.
 ```sh
 npm ci
 cp .env.example .env.local
-npm run dev
+DEMO_MODE=true npm run dev
 ```
 
-Without Supabase variables, `/` opens a clearly labelled fictional demonstration: 3 companies, 12 vehicles/drivers, jobs, document metadata and alerts. Demo edits persist only in browser local storage. No real documents, GPS, AI output or messages are sent. Reset demo restores fixtures.
+With `DEMO_MODE=true` and without Supabase variables, `/` opens a clearly labelled fictional demonstration: 3 companies, 12 vehicles/drivers, jobs, document metadata and alerts. Demo edits persist only in browser local storage. No real documents, GPS, AI output or messages are sent. Reset demo restores fixtures.
 
 With Supabase configured, `/` requires a valid Supabase session. No public sign-up or implicit membership. Apply migrations and provision memberships before inviting users.
 
@@ -41,5 +41,7 @@ supabase test db
 ```
 
 CI runs these checks on push/PR. Unit tests cover tenant filtering, role permissions, lifecycle guards, MCY formatting, stale GPS and validation. Browser tests cover fleet scoping, create/advance dispatch, approval/history, mobile usability and unauthenticated API rejection. pgTAP exercises actual database RLS and cross-tenant references.
+
+See the current [audit remediation milestone](docs/REMEDIATION.md) for the new database commands, document release policy, durable ETA workers and authenticated test coverage. The baseline audit remains a historical record.
 
 See [deployment](docs/DEPLOYMENT.md), [architecture](docs/ARCHITECTURE.md), and [limitations and delivery status](docs/STATUS.md). Never infer passing checks from the existence of a test file; consult CI results.

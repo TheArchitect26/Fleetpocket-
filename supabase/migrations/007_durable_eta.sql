@@ -1,5 +1,7 @@
 -- GPS events and ETA work are committed together. Only leased workers can publish results.
 alter table tracking_events add unique(tenant_id,id);
+alter table vehicles add column gps_event_id uuid;
+alter table vehicles add foreign key(tenant_id,gps_event_id) references tracking_events(tenant_id,id);
 alter table eta_history add column source_event_id uuid;
 alter table eta_history add column source_recorded_at timestamptz;
 alter table eta_history add column route_version integer;
@@ -33,7 +35,7 @@ begin
   update jobs set eta=null,current_eta_id=null,eta_approved=false,eta_state='missing' where id=j;return;
  end if;
  select * into v from vehicles where id=job.vehicle_id and tenant_id=job.tenant_id;
- select * into e from tracking_events where vehicle_id=v.id and tenant_id=v.tenant_id and recorded_at=v.gps_at order by recorded_at desc,id limit 1;
+ select * into e from tracking_events where id=v.gps_event_id and tenant_id=v.tenant_id;
  if e.id is null or e.recorded_at<now()-interval '30 minutes' then
   update jobs set eta=null,current_eta_id=null,eta_approved=false,eta_state='missing' where id=j;return;
  end if;
@@ -46,24 +48,24 @@ end $$;
 create function queue_after_dispatch() returns trigger language plpgsql security definer set search_path=public as $$ begin perform enqueue_job_eta(new.id);return new;end $$;
 create trigger queue_after_dispatch after update of status,loading_lat,loading_lng,destination_lat,destination_lng,vehicle_id on jobs for each row execute function queue_after_dispatch();
 create or replace function ingest_gps(payload jsonb) returns boolean language plpgsql security definer set search_path=public as $$
-declare v vehicles;inserted integer;j record;at timestamptz:=(payload->>'recorded_at')::timestamptz;
+declare v vehicles;inserted integer;gps_id uuid;j record;at timestamptz:=(payload->>'recorded_at')::timestamptz;
 begin
  if at>now()+interval '1 minute' or at<now()-interval '1 day' then raise exception using errcode='23514',message='GPS timestamp outside accepted window';end if;
  select * into v from vehicles where id=(payload->>'vehicle_id')::uuid and tenant_id=(payload->>'tenant_id')::uuid for update;
  if not found then raise exception using errcode='42501',message='Vehicle unavailable';end if;
  if v.provider<>payload->>'provider' and not(v.simulated and payload->>'provider'='Simulator') then raise exception 'Provider mismatch';end if;
  insert into tracking_events(tenant_id,vehicle_id,provider,event_id,lat,lng,speed,recorded_at)
- values(v.tenant_id,v.id,payload->>'provider',payload->>'event_id',(payload->>'lat')::float8,(payload->>'lng')::float8,(payload->>'speed')::float8,at) on conflict do nothing;
+ values(v.tenant_id,v.id,payload->>'provider',payload->>'event_id',(payload->>'lat')::float8,(payload->>'lng')::float8,(payload->>'speed')::float8,at) on conflict do nothing returning id into gps_id;
  get diagnostics inserted=row_count;
  if inserted=0 or (v.gps_at is not null and v.gps_at>=at) then return false;end if;
- update vehicles set lat=(payload->>'lat')::float8,lng=(payload->>'lng')::float8,speed=(payload->>'speed')::float8,gps_at=at,simulated=(payload->>'provider'='Simulator'),location='GPS '||(payload->>'lat')||', '||(payload->>'lng') where id=v.id;
+ update vehicles set lat=(payload->>'lat')::float8,lng=(payload->>'lng')::float8,speed=(payload->>'speed')::float8,gps_at=at,gps_event_id=gps_id,simulated=(payload->>'provider'='Simulator'),location='GPS '||(payload->>'lat')||', '||(payload->>'lng') where id=v.id;
  for j in select id from jobs where tenant_id=v.tenant_id and vehicle_id=v.id and status in('En Route to Loading','At Loading','Loaded','In Transit','At Delivery') loop perform enqueue_job_eta(j.id);end loop;
  return true;
 end $$;
 create function claim_eta_work(batch_size integer default 5) returns table(id uuid,lease_token uuid,from_lat float8,from_lng float8,recorded_at timestamptz,to_lat float8,to_lng float8) language plpgsql security definer set search_path=public as $$
 begin
  update tracking_work w set status='failed',last_error='Lease expired after maximum attempts',finished_at=now() where w.status='leased' and w.lease_until<now() and w.attempts>=5;
- update jobs j set eta_state='unavailable' from tracking_work w join tracking_events e on e.id=w.event_id join vehicles v on v.id=e.vehicle_id where w.status='failed' and j.id=w.job_id and j.route_version=w.route_version and j.current_eta_id is null and v.gps_at=e.recorded_at;
+ update jobs j set eta_state='unavailable' from tracking_work w join tracking_events e on e.id=w.event_id join vehicles v on v.id=e.vehicle_id where w.status='failed' and j.id=w.job_id and j.route_version=w.route_version and j.current_eta_id is null and v.gps_event_id=e.id;
  return query with candidates as (
   select w.id from tracking_work w where (w.status='pending' and w.available_at<=now() or w.status='leased' and w.lease_until<now()) and w.attempts<5 order by w.created_at for update skip locked limit least(greatest(batch_size,1),10)
  ), claimed as (
@@ -78,7 +80,7 @@ begin
  select * into j from jobs where id=w.job_id and tenant_id=w.tenant_id for update;
  select * into e from tracking_events where id=w.event_id and tenant_id=w.tenant_id;
  select * into v from vehicles where id=j.vehicle_id and tenant_id=w.tenant_id;
- if j.route_version<>w.route_version or v.gps_at is distinct from e.recorded_at or j.status not in('En Route to Loading','At Loading','Loaded','In Transit','At Delivery') or e.recorded_at<now()-interval '30 minutes' then
+ if j.route_version<>w.route_version or v.gps_event_id is distinct from e.id or j.status not in('En Route to Loading','At Loading','Loaded','In Transit','At Delivery') or e.recorded_at<now()-interval '30 minutes' then
   update tracking_work set status='superseded',finished_at=now() where id=work_id;return false;
  end if;
  if new_eta is null or route_provider is null then raise exception using errcode='23514',message='Routing result required';end if;
@@ -93,7 +95,7 @@ begin
  select * into w from tracking_work where id=work_id for update;
  if not found or w.status<>'leased' or w.lease_token is distinct from token then raise exception using errcode='40001',message='ETA lease changed';end if;
  update tracking_work set status=case when attempts>=5 then 'failed' else 'pending' end,available_at=now()+make_interval(secs=>least(300,15*(2^attempts)::int)),lease_until=null,last_error=left(error_code,100),finished_at=case when attempts>=5 then now() else null end where id=work_id;
- update jobs set eta_state='unavailable' where id=w.job_id and route_version=w.route_version and current_eta_id is null and exists(select 1 from vehicles v join tracking_events e on e.vehicle_id=v.id and e.tenant_id=v.tenant_id where e.id=w.event_id and v.gps_at=e.recorded_at);
+ update jobs set eta_state='unavailable' where id=w.job_id and route_version=w.route_version and current_eta_id is null and exists(select 1 from vehicles v join tracking_events e on e.vehicle_id=v.id and e.tenant_id=v.tenant_id where e.id=w.event_id and v.gps_event_id=e.id);
 end $$;
 create function approve_eta(t uuid,j uuid,expected_eta_id uuid) returns void language plpgsql security definer set search_path=public as $$
 declare job jobs;e eta_history;v vehicles;
@@ -104,16 +106,16 @@ begin
  if job.current_eta_id is distinct from expected_eta_id or job.eta_state<>'fresh' then raise exception using errcode='40001',message='ETA changed; review the current estimate';end if;
  select * into e from eta_history where tenant_id=t and id=expected_eta_id;
  select * into v from vehicles where tenant_id=t and id=job.vehicle_id;
- if e.valid_until<=now() or v.gps_at is distinct from e.source_recorded_at or job.route_version<>e.route_version then raise exception using errcode='40001',message='ETA is stale';end if;
+ if e.valid_until<=now() or v.gps_event_id is distinct from e.source_event_id or job.route_version<>e.route_version then raise exception using errcode='40001',message='ETA is stale';end if;
  update eta_history set approved_by=auth.uid(),approved_at=now() where id=e.id;
  update jobs set eta_approved=true where id=j;
 end $$;
 drop function approved_etas();
 create function approved_etas() returns table(job_id uuid,eta timestamptz,eta_id uuid,eta_state text,eta_source_at timestamptz,eta_valid_until timestamptz,eta_stop text) language sql stable security definer set search_path=public as $$
  select j.id,
- case when j.eta_state='fresh' and e.valid_until>now() and v.gps_at=e.source_recorded_at and j.route_version=e.route_version and (j.eta_approved or has_tenant(j.tenant_id,false,true)) then e.eta else null end,
+ case when j.eta_state='fresh' and e.valid_until>now() and v.gps_event_id=e.source_event_id and j.route_version=e.route_version and (j.eta_approved or has_tenant(j.tenant_id,false,true)) then e.eta else null end,
  case when has_tenant(j.tenant_id,false,true) then e.id else null end,
- case when j.eta_state='fresh' and (e.valid_until<=now() or v.gps_at is distinct from e.source_recorded_at) then 'stale' when j.eta_state='fresh' and not j.eta_approved and not has_tenant(j.tenant_id,false,true) then 'awaiting approval' else j.eta_state end,
+ case when j.eta_state='fresh' and (e.valid_until<=now() or v.gps_event_id is distinct from e.source_event_id) then 'stale' when j.eta_state='fresh' and not j.eta_approved and not has_tenant(j.tenant_id,false,true) then 'awaiting approval' else j.eta_state end,
  e.source_recorded_at,e.valid_until,e.stop_type
  from jobs j join vehicles v on v.id=j.vehicle_id and v.tenant_id=j.tenant_id left join eta_history e on e.id=j.current_eta_id and e.tenant_id=j.tenant_id where has_tenant(j.tenant_id);
 $$;
