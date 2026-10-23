@@ -12,6 +12,9 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - run: npm audit --omit=dev
+        continue-on-error: true
+      - run: npm ls next vitest @supabase/supabase-js
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
