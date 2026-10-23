@@ -19,7 +19,8 @@ test('configured authentication and raw database permissions fail closed',async(
  const controller=await client('controller');
  expect((await controller.from('vehicles').update({lat:-29,gps_at:new Date().toISOString()}).eq('id',f.vehicles[0])).error?.code).toBe('42501');
  expect((await controller.from('vehicles').select('id').eq('tenant_id',f.tenants[1])).data).toEqual([]);
- expect((await controller.rpc('claim_eta_work',{batch_size:1})).error).toBeTruthy();
+ expect((await controller.rpc('claim_eta_work',{batch_size:1})).error?.code).toBe('42501');
+ expect((await controller.rpc('enqueue_job_eta',{j:crypto.randomUUID()})).error?.code).toBe('42501');
 });
 test('real dispatch, exception recovery, private POD verification and closure',async({page,request})=>{
  await login(page);

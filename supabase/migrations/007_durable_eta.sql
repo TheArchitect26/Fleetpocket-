@@ -63,6 +63,7 @@ end $$;
 create function claim_eta_work(batch_size integer default 5) returns table(id uuid,lease_token uuid,from_lat float8,from_lng float8,recorded_at timestamptz,to_lat float8,to_lng float8) language plpgsql security definer set search_path=public as $$
 begin
  update tracking_work w set status='failed',last_error='Lease expired after maximum attempts',finished_at=now() where w.status='leased' and w.lease_until<now() and w.attempts>=5;
+ update jobs j set eta_state='unavailable' from tracking_work w join tracking_events e on e.id=w.event_id join vehicles v on v.id=e.vehicle_id where w.status='failed' and j.id=w.job_id and j.route_version=w.route_version and j.current_eta_id is null and v.gps_at=e.recorded_at;
  return query with candidates as (
   select w.id from tracking_work w where (w.status='pending' and w.available_at<=now() or w.status='leased' and w.lease_until<now()) and w.attempts<5 order by w.created_at for update skip locked limit least(greatest(batch_size,1),10)
  ), claimed as (
@@ -92,7 +93,7 @@ begin
  select * into w from tracking_work where id=work_id for update;
  if not found or w.status<>'leased' or w.lease_token is distinct from token then raise exception using errcode='40001',message='ETA lease changed';end if;
  update tracking_work set status=case when attempts>=5 then 'failed' else 'pending' end,available_at=now()+make_interval(secs=>least(300,15*(2^attempts)::int)),lease_until=null,last_error=left(error_code,100),finished_at=case when attempts>=5 then now() else null end where id=work_id;
- update jobs set eta_state='unavailable' where id=w.job_id and route_version=w.route_version and current_eta_id is null;
+ update jobs set eta_state='unavailable' where id=w.job_id and route_version=w.route_version and current_eta_id is null and exists(select 1 from vehicles v join tracking_events e on e.vehicle_id=v.id and e.tenant_id=v.tenant_id where e.id=w.event_id and v.gps_at=e.recorded_at);
 end $$;
 create function approve_eta(t uuid,j uuid,expected_eta_id uuid) returns void language plpgsql security definer set search_path=public as $$
 declare job jobs;e eta_history;v vehicles;

@@ -13,7 +13,7 @@ export function useWorkspace(demo:boolean){
   request.current=new AbortController();
   const task=(async()=>{
    try{
-    const response=await fetch('/api/workspace',{cache:'no-store',signal:request.current?.signal});
+    const response=await fetch('/api/workspace',{cache:'no-store',signal:AbortSignal.any([request.current!.signal,AbortSignal.timeout(10000)])});
     if(!response.ok)throw new Error(response.status===401?'Session expired. Sign in again.':'Workspace refresh failed. Showing the last successful snapshot.');
     const result:Workspace=await response.json();
     setData(result);setLastSynced(result.synced_at||new Date().toISOString());setSyncError('');return result;

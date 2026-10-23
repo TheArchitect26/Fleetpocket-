@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(23);
 insert into auth.users(id,email) values('99999999-9999-4999-8999-999999999993','controller@operations.test'),('99999999-9999-4999-8999-999999999994','viewer@operations.test');
 insert into tenants(id,name,code) values('66666666-6666-4666-8666-666666666666','Operations','OPS');
 insert into memberships values('66666666-6666-4666-8666-666666666666','99999999-9999-4999-8999-999999999993','controller'),('66666666-6666-4666-8666-666666666666','99999999-9999-4999-8999-999999999994','customer_viewer');
@@ -9,10 +9,13 @@ insert into jobs(id,tenant_id,vehicle_id,loading_code,loading_customer,delivery_
 set local role authenticated;
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999993',true);
 select throws_ok($$update vehicles set lat=-29,gps_at=now(),simulated=false where fleet_no='OPS-1'$$,'42501',null,'controller cannot forge confirmed telemetry');
+select throws_ok($$select claim_eta_work(1)$$,'42501',null,'authenticated user cannot lease worker jobs');
+select throws_ok($$select enqueue_job_eta('bbbbbbbb-bbbb-4bbb-8bbb-000000000002')$$,'42501',null,'internal enqueue function is not publicly executable');
 select lives_ok($$update vehicles set horse_reg='CA EDITED' where fleet_no='OPS-1'$$,'controller can edit fleet metadata');
 select throws_ok($$update jobs set status='Loaded'$$,'42501',null,'raw dispatch bypass denied');
 select is(dispatch_job('66666666-6666-4666-8666-666666666666','bbbbbbbb-bbbb-4bbb-8bbb-000000000002',1,'Assigned'),2,'assignment increments version');
 select throws_ok($$select dispatch_job('66666666-6666-4666-8666-666666666666','bbbbbbbb-bbbb-4bbb-8bbb-000000000002',1,'Accepted')$$,'40001',null,'stale dispatch rejected');
+select throws_ok($$select dispatch_job('66666666-6666-4666-8666-666666666666','bbbbbbbb-bbbb-4bbb-8bbb-000000000002',null,'Accepted')$$,'40001',null,'direct RPC cannot omit optimistic version');
 select is(dispatch_job('66666666-6666-4666-8666-666666666666','bbbbbbbb-bbbb-4bbb-8bbb-000000000002',2,'Accepted'),3,'job accepted');
 select is(dispatch_job('66666666-6666-4666-8666-666666666666','bbbbbbbb-bbbb-4bbb-8bbb-000000000002',3,'En Route to Loading'),4,'job en route');
 select is(dispatch_job('66666666-6666-4666-8666-666666666666','bbbbbbbb-bbbb-4bbb-8bbb-000000000002',4,'At Loading'),5,'job at loading');

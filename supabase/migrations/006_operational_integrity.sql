@@ -82,7 +82,7 @@ begin
  perform 1 from vehicles where tenant_id=t and id=current.vehicle_id for update;
  select * into current from jobs where tenant_id=t and id=j for update;
  if not found then raise exception using errcode='P0002',message='Job not found';end if;
- if current.version<>expected_version then raise exception using errcode='40001',message='Job changed; refresh before continuing';end if;
+ if expected_version is null or current.version<>expected_version then raise exception using errcode='40001',message='Job changed; refresh before continuing';end if;
  if next_status='Exception' and (reason is null or length(trim(reason)) not between 3 and 1000) then raise exception using errcode='23514',message='Provide an exception reason';end if;
  if next_status='Resolve' then
   if current.status<>'Exception' then raise exception using errcode='23514',message='No exception to resolve';end if;

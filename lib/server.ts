@@ -19,7 +19,11 @@ export async function membership(tenant:string,write=false,controller=false){
 }
 export async function mutation(request:Request){
  const origin=request.headers.get('origin');
- if(origin&&origin!==new URL(request.url).origin)throw new HttpError('Forbidden',403);
+ if(origin){
+  const url=new URL(request.url);
+  const expected=process.env.APP_ORIGIN?new URL(process.env.APP_ORIGIN).origin:`${url.protocol}//${request.headers.get('host')||url.host}`;
+  if(origin!==expected)throw new HttpError('Request origin is not permitted',403);
+ }
 }
 export function databaseError(error:{code?:string;message?:string}|null){
  if(!error)return;
@@ -28,7 +32,7 @@ export function databaseError(error:{code?:string;message?:string}|null){
 }
 export function failure(error:unknown){
  const requestId=crypto.randomUUID();
- const status=error instanceof HttpError?error.status:error instanceof ZodError?400:error instanceof Error&&error.message.includes('configured')?503:500;
+ const status=error instanceof HttpError?error.status:error instanceof ZodError||error instanceof SyntaxError?400:error instanceof Error&&error.message.includes('configured')?503:500;
  const message=error instanceof ZodError?'Invalid request fields':status>=500?'Service unavailable. Retry or contact your administrator.':error instanceof Error?error.message:'Request failed';
  console.error(JSON.stringify({event:'request_failed',status,request_id:requestId}));
  return NextResponse.json({error:message,request_id:requestId},{status,headers:status===429?{'Retry-After':'60'}:undefined});
