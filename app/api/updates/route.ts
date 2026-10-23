@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { membership,mutation,rateLimit,failure } from '@/lib/server';
+export async function POST(request:Request){try{await mutation(request);const input=z.object({tenant_id:z.string().uuid(),vehicle_id:z.string().uuid(),text:z.string().min(30).max(6000),interval_minutes:z.number().int().min(5).max(1440)}).parse(await request.json());const {db,user}=await membership(input.tenant_id,true,true);await rateLimit(db,`${user.id}:updates`);const {data,error}=await db.from('updates').insert({...input,approved:false}).select('id').single();if(error)throw new Error('Unable to save update');const approved=await db.from('updates').update({approved:true}).eq('id',data.id).eq('tenant_id',input.tenant_id);if(approved.error)throw new Error('Approval failed');return NextResponse.json({id:data.id,approved:true});}catch(e){return failure(e);}}
