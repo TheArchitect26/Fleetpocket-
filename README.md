@@ -35,7 +35,7 @@ npm run typecheck
 npm test
 npm run build
 npx playwright install chromium
-npm run test:e2e
+DEMO_MODE=true npm run test:e2e
 supabase start
 supabase test db
 ```

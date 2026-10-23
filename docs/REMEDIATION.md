@@ -39,7 +39,16 @@ To explicitly run the fictional production-style demo: `DEMO_MODE=true npm run s
 
 ## Verification
 
-The new code is being validated in PR #1. The previous green CI run predates these migrations and is not evidence that these changes pass. Record the new run after execution. The database suite now includes operational integrity, ETA work and document-release assertions. The authenticated CI job uses a loopback-only Supabase instance, generated local identities and a test-only password; it sends no invitation emails and refuses non-local fixture targets.
+[GitHub Actions run 40028260066](https://github.com/TheArchitect26/Fleetpocket-/actions/runs/40028260066) passed all three jobs for this implementation:
+
+- ESLint and TypeScript: passed.
+- Unit tests: 21 passed.
+- Production build and dependency audit: passed; install/audit reported zero vulnerabilities.
+- Fictional demo browser workflows: 5 passed.
+- Authenticated local-Supabase browser workflows: 4 passed, including private POD bytes, verification/release/closure, cross-tenant denial, protected worker/GPS writes, cross-session refresh and customer-admin upload ownership.
+- pgTAP database assertions: 76 passed across five suites, including durable retries, expired lease recovery, exact-version approval, load state, exception recovery and document release/ownership.
+
+The authenticated CI job uses loopback-only Supabase, generated local identities and a test-only password. It sends no invitation emails and refuses non-local fixture targets. Local registry access remains blocked, so these full checks ran in GitHub Actions; local dependency-free dispatch/load probes and whitespace checks also passed. A subsequent documentation-only commit records these results without changing the tested application code.
 
 ## Still required
 
