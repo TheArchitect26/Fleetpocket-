@@ -1,6 +1,6 @@
 import { describe,it,expect } from 'vitest';
 import { createDemo,tenantIds } from '../lib/demo';
-import { scopeWorkspace,transition,whatsapp,detectAlerts,jobInput,gpsInput,stages,canWrite,canControl } from '../lib/domain';
+import { isGpsStale,scopeWorkspace,transition,whatsapp,detectAlerts,jobInput,gpsInput,stages,canWrite,canControl } from '../lib/domain';
 const now=new Date('2026-10-23T12:00:00Z');
 describe('tenant isolation',()=>{
  const data=createDemo(now);
@@ -26,5 +26,7 @@ describe('tracking and validation',()=>{
  it('does not invent an event for a healthy vehicle',()=>{const d=createDemo(now);expect(detectAlerts(d.vehicles[0],d.jobs[0],now)).toEqual([]);});
  it('rejects GPS coordinates outside Earth',()=>expect(gpsInput.safeParse({tenant_id:tenantIds[0],vehicle_id:createDemo(now).vehicles[0].id,provider:'Cartrack',event_id:'a',lat:91,lng:28,speed:70,recorded_at:now.toISOString()}).success).toBe(false));
  it('rejects incomplete jobs',()=>expect(jobInput.safeParse({cargo:'Steel'}).success).toBe(false));
+ it('does not invent a GPS timestamp for an unconnected vehicle',()=>{const d=createDemo(now);d.vehicles[0].gps_at='';d.vehicles[0].location='No confirmed GPS';expect(whatsapp(d.vehicles[0],d.jobs[0],undefined,d.tenants[0])).toContain('No confirmed GPS reading');});
+ it('treats missing GPS as stale',()=>{const v=createDemo(now).vehicles[0];v.gps_at='';expect(isGpsStale(v,now.getTime())).toBe(true);});
  it('uses only labelled simulated readings in demo',()=>expect(createDemo(now).vehicles.every(v=>v.simulated)).toBe(true));
 });
