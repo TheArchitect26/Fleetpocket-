@@ -12,6 +12,11 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Dependency lock snapshot
+        run: |
+          echo FLEET_LOCK_START
+          cat package-lock.json
+          echo FLEET_LOCK_END
       - run: npm audit --omit=dev
         continue-on-error: true
       - run: npm ls next vitest @supabase/supabase-js
