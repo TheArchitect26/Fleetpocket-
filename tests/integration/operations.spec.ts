@@ -42,9 +42,9 @@ test('real dispatch, exception recovery, private POD verification and closure',a
  workspace=await (await page.request.get('/api/workspace')).json();const doc=workspace.documents.find((d:{name:string})=>d.name==='integration-pod.pdf');expect(doc).toBeTruthy();
  const viewer=await client('viewer'),outsider=await client('outsider');
  expect((await viewer.from('documents').select('id').eq('id',doc.id)).data).toEqual([]);expect((await viewer.storage.from('fleet-documents').createSignedUrl(doc.path,60)).error).toBeTruthy();
- let verified=await page.request.patch('/api/documents',{data:{id:doc.id,tenant_id:f.tenants[0],release_to_customer:false}});expect(verified.ok()).toBeTruthy();
+ const documentRow=page.getByRole('row').filter({hasText:'integration-pod.pdf'});await documentRow.getByRole('button',{name:'Verify',exact:true}).click();await expect(documentRow.getByText('Verified',{exact:true})).toBeVisible();
  expect((await viewer.from('documents').select('id').eq('id',doc.id)).data).toEqual([]);
- verified=await page.request.patch('/api/documents',{data:{id:doc.id,tenant_id:f.tenants[0],release_to_customer:true}});expect(verified.ok()).toBeTruthy();
+ await documentRow.getByRole('button',{name:'Release to customer'}).click();await expect(documentRow.getByText('Customer released',{exact:true})).toBeVisible();
  expect((await viewer.from('documents').select('id').eq('id',doc.id)).data).toHaveLength(1);expect((await outsider.from('documents').select('id').eq('id',doc.id)).data).toEqual([]);expect((await outsider.storage.from('fleet-documents').createSignedUrl(doc.path,60)).error).toBeTruthy();
  const signed=await viewer.storage.from('fleet-documents').createSignedUrl(doc.path,60);expect(signed.error).toBeNull();const download=await request.get(signed.data!.signedUrl);expect(download.ok()).toBeTruthy();expect((await download.body()).toString()).toContain('%PDF-1.4');
  await page.getByRole('button',{name:'Jobs & dispatch',exact:true}).click();for(const stage of ['POD Received','Closed']){await card.getByRole('button',{name:'Advance stage'}).click();await expect(card.getByText(stage,{exact:true})).toBeVisible();}

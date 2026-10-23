@@ -119,7 +119,7 @@ create function approved_etas() returns table(job_id uuid,eta timestamptz,eta_id
  e.source_recorded_at,e.valid_until,e.stop_type
  from jobs j join vehicles v on v.id=j.vehicle_id and v.tenant_id=j.tenant_id left join eta_history e on e.id=j.current_eta_id and e.tenant_id=j.tenant_id where has_tenant(j.tenant_id);
 $$;
-revoke all on function enqueue_job_eta(uuid),queue_after_dispatch(),claim_eta_work(integer),finish_eta_work(uuid,uuid,timestamptz,text),fail_eta_work(uuid,uuid,text),approve_eta(uuid,uuid,uuid),approved_etas() from public;
+revoke all on function enqueue_job_eta(uuid),queue_after_dispatch(),claim_eta_work(integer),finish_eta_work(uuid,uuid,timestamptz,text),fail_eta_work(uuid,uuid,text),approve_eta(uuid,uuid,uuid),approved_etas() from public,anon,authenticated;
 grant execute on function claim_eta_work(integer),finish_eta_work(uuid,uuid,timestamptz,text),fail_eta_work(uuid,uuid,text) to service_role;
 grant execute on function approve_eta(uuid,uuid,uuid),approved_etas() to authenticated;
 -- Remove the unfenced legacy write path.
