@@ -1,0 +1,15 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select plan(8);
+insert into public.tenants(id,name,code) values('44444444-4444-4444-8444-444444444444','Tracking Test','TRACK');
+insert into public.vehicles(id,tenant_id,fleet_no,horse_reg,provider) values('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee','44444444-4444-4444-8444-444444444444','T-1','CA TEST','Cartrack');
+select is(public.ingest_gps('{"tenant_id":"44444444-4444-4444-8444-444444444444","vehicle_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","provider":"Cartrack","event_id":"1","lat":-29,"lng":31,"speed":70,"recorded_at":"2026-10-23T12:00:00Z"}'),true,'first confirmed event ingested');
+select is(public.ingest_gps('{"tenant_id":"44444444-4444-4444-8444-444444444444","vehicle_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","provider":"Cartrack","event_id":"1","lat":-29,"lng":31,"speed":70,"recorded_at":"2026-10-23T12:00:00Z"}'),false,'duplicate event idempotent');
+select is(public.ingest_gps('{"tenant_id":"44444444-4444-4444-8444-444444444444","vehicle_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","provider":"Cartrack","event_id":"0","lat":-30,"lng":30,"speed":60,"recorded_at":"2026-10-23T11:00:00Z"}'),false,'out of order event not promoted');
+select is((select lat from public.vehicles where id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),-29::double precision,'confirmed coordinates retained');
+select is((select count(*)::int from public.tracking_events where vehicle_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),2,'old readings retained in history');
+select is((select simulated from public.vehicles where id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),false,'real event never labelled simulated');
+select throws_ok($$select public.ingest_gps('{"tenant_id":"44444444-4444-4444-8444-444444444444","vehicle_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","provider":"Netstar","event_id":"3","lat":-29,"lng":31,"speed":70,"recorded_at":"2026-10-23T13:00:00Z"}')$$,'P0001','Provider mismatch','wrong provider rejected');
+select throws_ok($$select public.ingest_gps('{"tenant_id":"55555555-5555-4555-8555-555555555555","vehicle_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee","provider":"Cartrack","event_id":"4","lat":-29,"lng":31,"speed":70,"recorded_at":"2026-10-23T13:00:00Z"}')$$,'P0001','Vehicle unavailable','wrong tenant rejected');
+select * from finish();
+rollback;
