@@ -7,7 +7,7 @@ A clean Next.js/TypeScript rebuild of MCY's multi-customer logistics workspace. 
 Use Node.js 22 LTS or newer.
 
 ```sh
-npm install
+npm ci
 cp .env.example .env.local
 npm run dev
 ```

@@ -1,6 +1,17 @@
 import { NextResponse } from 'next/server';
 import { gpsInput } from '@/lib/domain';
 import { workerDb,secretMatches } from '@/lib/worker';
-import { OsrmRouting } from '@/lib/providers';
-import { failure } from '@/lib/server';
-export async function POST(request:Request){try{if(!secretMatches(request.headers.get('authorization'),process.env.TRACKING_WEBHOOK_SECRET?`Bearer ${process.env.TRACKING_WEBHOOK_SECRET}`:undefined))return NextResponse.json({error:'Unauthorised'},{status:401});if(Number(request.headers.get('content-length'))>8192)throw new Error('Payload too large');const event=gpsInput.parse(await request.json());if(event.tenant_id!==process.env.TRACKING_TENANT_ID||event.provider!==process.env.TRACKING_PROVIDER)throw new Error('Forbidden');if(Date.parse(event.recorded_at)>Date.now()+60000||Date.parse(event.recorded_at)<Date.now()-86400000)throw new Error('GPS timestamp outside accepted window');const db=workerDb();const {data,error}=await db.rpc('ingest_gps',{payload:event});if(error)throw new Error('GPS ingestion failed');if(!data)return NextResponse.json({accepted:true,duplicate_or_old:true});const jobs=await db.from('jobs').select('id,destination_lat,destination_lng').eq('tenant_id',event.tenant_id).eq('vehicle_id',event.vehicle_id).in('status',['En Route to Loading','At Loading','Loaded','In Transit','At Delivery']);for(const job of jobs.data||[]){const route=await new OsrmRouting().eta([event.lng,event.lat],[job.destination_lng,job.destination_lat],new Date(event.recorded_at));if(route){const recorded=await db.rpc('record_eta',{t:event.tenant_id,j:job.id,new_eta:route.eta,route_provider:route.provider});if(recorded.error)throw new Error('ETA persistence failed');}}return NextResponse.json({accepted:true});}catch(e){return failure(e);}}
+import { failure,databaseError,HttpError } from '@/lib/server';
+export async function POST(request:Request){
+ try{
+  if(!secretMatches(request.headers.get('authorization'),process.env.TRACKING_WEBHOOK_SECRET?`Bearer ${process.env.TRACKING_WEBHOOK_SECRET}`:undefined))return NextResponse.json({error:'Unauthorised'},{status:401});
+  // The ingress must also cap streamed bodies; do not trust Content-Length alone.
+  const body=await request.text();
+  if(new TextEncoder().encode(body).length>8192)throw new HttpError('Payload too large',413);
+  const event=gpsInput.parse(JSON.parse(body));
+  if(event.tenant_id!==process.env.TRACKING_TENANT_ID||event.provider!==process.env.TRACKING_PROVIDER)throw new HttpError('Forbidden',403);
+  const {data,error}=await workerDb().rpc('ingest_gps',{payload:event});
+  databaseError(error);
+  return NextResponse.json({accepted:true,duplicate_or_old:!data,processing:'durable queue'},{status:data?202:200});
+ }catch(e){return failure(e);}
+}

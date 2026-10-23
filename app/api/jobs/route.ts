@@ -1,6 +1,32 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { jobInput,stages } from '@/lib/domain';
-import { membership,mutation,rateLimit,failure } from '@/lib/server';
-export async function POST(request:Request){try{await mutation(request);const input=jobInput.parse(await request.json());const {db,user}=await membership(input.tenant_id,true);await rateLimit(db,`${user.id}:jobs`);const {data:v,error:ve}=await db.from('vehicles').select('id,driver_id').eq('tenant_id',input.tenant_id).eq('id',input.vehicle_id).single();if(ve||!v)throw new Error('Vehicle unavailable');const {data,error}=await db.from('jobs').insert({...input,driver_id:v.driver_id}).select('id').single();if(error)throw new Error('Unable to create job');return NextResponse.json(data,{status:201});}catch(e){return failure(e);}}
-export async function PATCH(request:Request){try{await mutation(request);const input=z.object({id:z.string().uuid(),tenant_id:z.string().uuid(),status:z.enum([...stages,'Cancelled','Exception']).optional(),approve_eta:z.boolean().optional()}).parse(await request.json());const {db,user}=await membership(input.tenant_id,true,true);await rateLimit(db,`${user.id}:dispatch`);if(!input.status&&!input.approve_eta)throw new Error('No dispatch operation supplied');const {error}=await db.from('jobs').update(input.approve_eta?{eta_approved:true}:input.status==='Assigned'?{status:input.status,controller:user.email||user.id}:{status:input.status}).eq('id',input.id).eq('tenant_id',input.tenant_id);if(error)throw new Error('Transition rejected. Check lifecycle order and verified POD.');return NextResponse.json({ok:true});}catch(e){return failure(e);}}
+import { membership,mutation,rateLimit,failure,databaseError } from '@/lib/server';
+export async function POST(request:Request){
+ try{
+  await mutation(request);
+  const input=jobInput.parse(await request.json());
+  const {db,user}=await membership(input.tenant_id,true);
+  await rateLimit(db,`${user.id}:jobs`);
+  const {data,error}=await db.rpc('create_transport_job',{payload:input});
+  databaseError(error);
+  return NextResponse.json({id:data},{status:201});
+ }catch(e){return failure(e);}
+}
+const command=z.discriminatedUnion('operation',[
+ z.object({operation:z.literal('dispatch'),id:z.string().uuid(),tenant_id:z.string().uuid(),expected_version:z.number().int().positive(),status:z.enum([...stages,'Cancelled','Exception','Resolve']),reason:z.string().min(3).max(1000).optional()}),
+ z.object({operation:z.literal('approve_eta'),id:z.string().uuid(),tenant_id:z.string().uuid(),eta_id:z.string().uuid()})
+]);
+export async function PATCH(request:Request){
+ try{
+  await mutation(request);
+  const input=command.parse(await request.json());
+  const {db,user}=await membership(input.tenant_id,true,true);
+  await rateLimit(db,`${user.id}:dispatch`);
+  const result=input.operation==='approve_eta'
+   ?await db.rpc('approve_eta',{t:input.tenant_id,j:input.id,expected_eta_id:input.eta_id})
+   :await db.rpc('dispatch_job',{t:input.tenant_id,j:input.id,expected_version:input.expected_version,next_status:input.status,reason:input.reason||null});
+  databaseError(result.error);
+  return NextResponse.json({ok:true,version:result.data});
+ }catch(e){return failure(e);}
+}

@@ -1,0 +1,26 @@
+{
+  "scope": "Pure domain functions only. No Zod schemas, React, database, HTTP, storage or external providers executed.",
+  "domain_sha256": "66cebaacdafb134084a54aa0d9ff7ad36495124f634355ae2645f936e3a8028d",
+  "probes": [
+    {
+      "finding": "F05",
+      "observed": "A Loaded job and Empty vehicle produce Status: Empty in the MCY update.",
+      "outcome": "reproduced"
+    },
+    {
+      "finding": "F04",
+      "observed": "A three-hour-old GPS position is included with its timestamp but without a stale warning; the existing ETA remains in the update.",
+      "outcome": "reproduced"
+    },
+    {
+      "finding": "F08",
+      "observed": "An Exception job cannot resume In Transit through the lifecycle function.",
+      "outcome": "reproduced; absence of a separate recovery path established by source review"
+    },
+    {
+      "finding": "positive-control",
+      "observed": "Pure frontend scoping denies empty or unauthorised tenant selections.",
+      "outcome": "passed; does not replace database RLS tests"
+    }
+  ]
+}

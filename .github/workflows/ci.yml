@@ -24,6 +24,8 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          DEMO_MODE: "true"
       - name: Browser failure context
         if: failure()
         run: find test-results -name error-context.md -exec cat {} \; || true
@@ -42,3 +44,32 @@ jobs:
           version: latest
       - run: supabase start
       - run: supabase test db
+
+  authenticated-workflows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g npm@11
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start > /tmp/fleet-supabase-start.log 2>&1
+      - run: supabase status -o env > /tmp/fleet-supabase.env
+      - run: node scripts/configure-integration.mjs
+      - run: node scripts/seed-integration.mjs
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.integration.config.ts
+      - name: Integration failure context
+        if: failure()
+        run: find test-results -name error-context.md -exec cat {} \; || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: authenticated-browser-traces
+          path: test-results/

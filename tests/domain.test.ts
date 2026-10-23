@@ -1,7 +1,7 @@
 import { describe,it,expect } from 'vitest';
 import { createDemo,tenantIds } from '../lib/demo';
-import { isGpsStale,scopeWorkspace,transition,whatsapp,detectAlerts,jobInput,gpsInput,stages,canWrite,canControl } from '../lib/domain';
-const now=new Date('2026-10-23T12:00:00Z');
+import { loadStatusFor,isGpsStale,scopeWorkspace,transition,whatsapp,detectAlerts,jobInput,gpsInput,stages,canWrite,canControl } from '../lib/domain';
+const now=new Date();
 describe('tenant isolation',()=>{
  const data=createDemo(now);
  it('filters every tenant-owned collection',()=>{const scoped=scopeWorkspace(data,[tenantIds[0]]);expect(scoped.tenants).toHaveLength(1);for(const rows of [scoped.vehicles,scoped.drivers,scoped.jobs,scoped.documents,scoped.alerts,scoped.audit,scoped.updates])expect(rows.every(r=>r.tenant_id===tenantIds[0])).toBe(true);expect(scoped.vehicles).toHaveLength(4);});
@@ -13,6 +13,8 @@ describe('tenant isolation',()=>{
 describe('delivery lifecycle',()=>{
  it('traverses all stages with verified POD',()=>{for(let i=0;i<stages.length-1;i++)expect(transition(stages[i],stages[i+1],true)).toBe(stages[i+1]);});
  it('rejects skipping stages',()=>expect(()=>transition('Created','Loaded',true)).toThrow());
+ it('synchronises load state through loading and delivery',()=>{expect(loadStatusFor('Loaded','Empty')).toBe('Loaded');expect(loadStatusFor('Delivered','Loaded')).toBe('Empty');expect(loadStatusFor('Exception','Loaded')).toBe('Loaded');});
+ it('blocks cancellation of loaded cargo',()=>expect(()=>transition('In Transit','Cancelled',false)).toThrow('cargo recovery'));
  it('requires verified POD',()=>expect(()=>transition('Delivered','POD Received',false)).toThrow('verified'));
  it('keeps closed and cancelled jobs terminal',()=>{expect(()=>transition('Closed','Created',true)).toThrow();expect(()=>transition('Cancelled','Assigned',true)).toThrow();});
  it('permits operational exceptions and cancellation',()=>{expect(transition('In Transit','Exception',false)).toBe('Exception');expect(transition('Assigned','Cancelled',false)).toBe('Cancelled');});
