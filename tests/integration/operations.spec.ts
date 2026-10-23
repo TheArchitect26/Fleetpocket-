@@ -26,7 +26,7 @@ test('real dispatch, exception recovery, private POD verification and closure',a
  await login(page);
  await page.getByRole('button',{name:'Create job',exact:true}).click();
  const form=page.getByRole('dialog',{name:'Create transport job'});
- await form.getByLabel('Loading customer',{exact:true}).fill('Integration collection');await form.getByLabel('Offloading customer',{exact:true}).fill('Integration delivery');await form.getByLabel('Cargo',{exact:true}).fill('Integration pallets');await form.getByLabel(/Scheduled delivery/).fill('2027-01-10T12:00');await form.getByRole('button',{name:'Create transport job'}).click();await expect(form).toHaveCount(0);
+ await form.getByLabel('Loading customer',{exact:true}).fill('Integration collection');await form.getByLabel('Offloading customer',{exact:true}).fill('Integration delivery');await form.getByLabel('Cargo',{exact:true}).fill('Integration pallets');await form.getByLabel(/Scheduled delivery/).fill('2027-01-10T12:00');await form.getByLabel('Loading latitude',{exact:true}).fill('-33.9249');await form.getByLabel('Loading longitude',{exact:true}).fill('18.4241');await form.getByLabel('Destination latitude',{exact:true}).fill('-29.8587');await form.getByLabel('Destination longitude',{exact:true}).fill('31.0218');await form.getByRole('button',{name:'Create transport job'}).click();await expect(form).toHaveCount(0);
  await page.getByRole('button',{name:'Jobs & dispatch',exact:true}).click();
  const card=page.locator('.dispatch-card').filter({hasText:'Integration collection'});
  for(const stage of ['Assigned','Accepted','En Route to Loading','At Loading','Loaded','In Transit']){
