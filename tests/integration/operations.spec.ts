@@ -40,7 +40,8 @@ test('real dispatch, exception recovery, private POD verification and closure',a
  await card.getByRole('button',{name:'Advance stage'}).click();await expect(page.getByRole('status').filter({hasText:'verified proof of delivery'})).toBeVisible();
  await page.getByRole('button',{name:'Documents & PODs',exact:true}).click();await page.getByRole('button',{name:'Upload document'}).click();dialog=page.getByRole('dialog',{name:'Upload document'});await dialog.getByLabel('Document type').selectOption('Proof of delivery');await dialog.getByLabel('Related job').selectOption(job.id);await dialog.getByLabel('File',{exact:true}).setInputFiles({name:'integration-pod.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF')});await dialog.getByRole('button',{name:'Upload document',exact:true}).click();await expect(dialog).toHaveCount(0);
  workspace=await (await page.request.get('/api/workspace')).json();const doc=workspace.documents.find((d:{name:string})=>d.name==='integration-pod.pdf');expect(doc).toBeTruthy();
- const viewer=await client('viewer'),outsider=await client('outsider');
+ const viewer=await client('viewer'),outsider=await client('outsider'),customerAdmin=await client('customer_admin');
+ const alias=await customerAdmin.from('documents').insert({tenant_id:f.tenants[0],name:'Private alias',kind:'Other',vehicle_id:f.vehicles[0],path:doc.path});expect(alias.error?.code).toBe('42501');
  expect((await viewer.from('documents').select('id').eq('id',doc.id)).data).toEqual([]);expect((await viewer.storage.from('fleet-documents').createSignedUrl(doc.path,60)).error).toBeTruthy();
  const documentRow=page.getByRole('row').filter({hasText:'integration-pod.pdf'});await documentRow.getByRole('button',{name:'Verify',exact:true}).click();await expect(documentRow.getByText('Verified',{exact:true})).toBeVisible();
  expect((await viewer.from('documents').select('id').eq('id',doc.id)).data).toEqual([]);
@@ -54,4 +55,14 @@ test('a second controller session receives changes without reloading',async({pag
  await login(page);const controller=await client('controller');const registration=`SYNC-${Date.now()}`;
  const update=await controller.from('vehicles').update({horse_reg:registration}).eq('id',f.vehicles[0]);expect(update.error).toBeNull();
  await expect(page.getByRole('row',{name:'Open TEST-0'})).toContainText(registration,{timeout:25000});
+});
+
+test('customer admin can register only their own uploaded objects',async()=>{
+ const admin=await client('customer_admin'),viewer=await client('viewer');
+ const path=`${f.tenants[0]}/${crypto.randomUUID()}.pdf`;
+ const upload=await admin.storage.from('fleet-documents').upload(path,Buffer.from('%PDF-1.4\n%%EOF'),{contentType:'application/pdf'});expect(upload.error).toBeNull();
+ const registered=await admin.from('documents').insert({tenant_id:f.tenants[0],name:'Customer instructions',kind:'Delivery instructions',vehicle_id:f.vehicles[0],path}).select('id').single();expect(registered.error).toBeNull();
+ expect((await admin.storage.from('fleet-documents').createSignedUrl(path,60)).error).toBeNull();
+ expect((await viewer.from('documents').select('id').eq('id',registered.data!.id)).data).toEqual([]);
+ expect((await viewer.storage.from('fleet-documents').createSignedUrl(path,60)).error).toBeTruthy();
 });

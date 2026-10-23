@@ -12,14 +12,14 @@ The [23 October audit](AUDIT-2026-10-23.md) records the earlier implementation. 
 - F06, partial: separate loading/delivery coordinates and routing to the currently active stop. This is an ETA to that stop, not a complete multi-stop delivery forecast including loading/service time.
 - F07: public authenticated clients cannot update confirmed telemetry or load state. Tenant ownership is immutable. Fleet metadata remains editable through its permitted column grants.
 - F08: exception reason, interrupted stage and audited resolution; loaded cargo cannot be silently cancelled.
-- F09: customer viewers receive only verified, explicitly released POD/loading/delivery documents. Customer admins can also review their own uploads. Sensitive driver/insurance types cannot be customer-released. Storage policies use the same rules, including known paths. Verified document identity is immutable.
+- F09: customer viewers receive only verified, explicitly released POD/loading/delivery documents. Customer admins can also review their own uploads, but can register only Storage objects owned by their Auth identity. Knowing another private path does not grant access. Sensitive driver/insurance types cannot be customer-released. Storage policies use the same rules, including known paths. Verified document identity is immutable.
 - F10: a separate real-Supabase authenticated browser suite provisions local-only test identities and exercises dispatch, exception recovery, actual private POD bytes, release, closure, cross-tenant denial and refresh. Existing fictional demo tests remain separate.
 - F11/F12, partial: one live assignment per vehicle, matching job/vehicle PODs, optimistic dispatch versions, structured before/after audit snapshots and controller-only operational audit access.
 - F14/F15/F18/F19, partial: deterministic newest-first histories, a truncation banner, typed HTTP failure status/request IDs, missing-row/conflict errors for new commands, explicit production demo opt-in and per-tenant capability data.
 
 ## Migration and release notes
 
-Apply `006_operational_integrity.sql` then `007_durable_eta.sql` and `008_rpc_permissions.sql` in a dedicated staging project first. The unique active-assignment index intentionally fails if existing live assignments conflict. Before migrating a populated project, run:
+Apply `006_operational_integrity.sql` then `007_durable_eta.sql` through `009_document_upload_ownership.sql` in a dedicated staging project first. The unique active-assignment index intentionally fails if existing live assignments conflict. Before migrating a populated project, run:
 
 ```sql
 select tenant_id,vehicle_id,count(*) from jobs

@@ -6,7 +6,7 @@ const db=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSe
 const run=crypto.randomUUID().slice(0,8),password='FleetPocket-local-test-only-2026!';
 const fixture={password,tenants:[crypto.randomUUID(),crypto.randomUUID()],vehicles:[crypto.randomUUID(),crypto.randomUUID()],users:{}};
 async function checked(result){if(result.error)throw new Error(result.error.message);return result.data;}
-for(const role of ['controller','viewer','outsider']){
+for(const role of ['controller','viewer','outsider','customer_admin']){
  const email=`${role}-${run}@fleet.test`;
  const data=await checked(await db.auth.admin.createUser({email,password,email_confirm:true}));fixture.users[role]={email,id:data.user.id};
 }
@@ -14,6 +14,7 @@ await checked(await db.from('tenants').insert(fixture.tenants.map((id,i)=>({id,n
 await checked(await db.from('memberships').insert([
  {tenant_id:fixture.tenants[0],user_id:fixture.users.controller.id,role:'controller'},
  {tenant_id:fixture.tenants[0],user_id:fixture.users.viewer.id,role:'customer_viewer'},
+ {tenant_id:fixture.tenants[0],user_id:fixture.users.customer_admin.id,role:'customer_admin'},
  {tenant_id:fixture.tenants[1],user_id:fixture.users.outsider.id,role:'controller'}
 ]));
 for(let i=0;i<2;i++){

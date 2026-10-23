@@ -25,7 +25,7 @@ supabase link --project-ref YOUR_PROJECT
 supabase db push
 ```
 
-Migrations `001_foundation.sql` through `008_rpc_permissions.sql` create data, policies, private storage and worker functions. Run in staging first. Do not apply this rebuild to the previous application's database.
+Migrations `001_foundation.sql` through `009_document_upload_ownership.sql` create data, policies, private storage and worker functions. Run in staging first. Do not apply this rebuild to the previous application's database.
 
 Provision tenants and Auth users through the Supabase admin dashboard. Insert explicit membership rows as a trusted administrator. Roles: admin/controller/customer_admin/customer_viewer. Customer admins create jobs/upload documents and manage customer-role membership for existing Auth identities using Team & access. Identity provisioning and email invitations remain an administrator task. Do not grant them service-role access. Disable public signup in remote Auth settings and configure application URL/callback allowlists. No default password or automatically privileged account exists.
 
