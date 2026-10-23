@@ -19,7 +19,6 @@ jobs:
           cat package-lock.json
           echo FLEET_LOCK_END
       - run: npm audit --omit=dev
-        continue-on-error: true
       - run: npm ls next vitest @supabase/supabase-js
       - run: npm run lint
       - run: npm run typecheck
