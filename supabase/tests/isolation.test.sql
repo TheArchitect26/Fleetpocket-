@@ -1,10 +1,12 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(13);
 insert into auth.users(id,email) values('99999999-9999-4999-8999-999999999991','one@example.test'),('99999999-9999-4999-8999-999999999992','two@example.test');
 insert into public.tenants(id,name,code) values('11111111-1111-4111-8111-111111111111','Tenant A','A'),('22222222-2222-4222-8222-222222222222','Tenant B','B');
 insert into public.memberships values('11111111-1111-4111-8111-111111111111','99999999-9999-4999-8999-999999999991','customer_viewer'),('22222222-2222-4222-8222-222222222222','99999999-9999-4999-8999-999999999992','controller');
 insert into public.vehicles(id,tenant_id,fleet_no,horse_reg) values('aaaaaaaa-aaaa-4aaa-8aaa-000000000001','11111111-1111-4111-8111-111111111111','A-1','CA 001'),('aaaaaaaa-aaaa-4aaa-8aaa-000000000002','22222222-2222-4222-8222-222222222222','B-1','GP 002');
+insert into public.jobs(id,tenant_id,vehicle_id,loading_code,loading_customer,delivery_code,delivery_customer,cargo,scheduled_at,destination_lat,destination_lng,eta) values('bbbbbbbb-bbbb-4bbb-8bbb-000000000001','11111111-1111-4111-8111-111111111111','aaaaaaaa-aaaa-4aaa-8aaa-000000000001','CPT','Loading','DBN','Delivery','Cargo',now(),-29,31,now()+interval '3 hours');
+insert into public.eta_history(tenant_id,job_id,eta,provider) values('11111111-1111-4111-8111-111111111111','bbbbbbbb-bbbb-4bbb-8bbb-000000000001',now()+interval '3 hours','OSRM');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999991',true);
 select is((select count(*)::int from public.tenants),1,'tenant A sees only its tenant');
@@ -16,6 +18,8 @@ select throws_ok($$insert into public.vehicles(tenant_id,fleet_no,horse_reg) val
 select throws_ok($$select public.monitor_fleet()$$,'42501',null,'worker function denied');
 select throws_ok($$select eta from public.jobs$$,'42501',null,'raw ETA column denied');
 select is((select count(*)::int from public.memberships),1,'memberships scoped to self');
+select is((select count(*)::int from public.eta_history),0,'unapproved ETA history hidden from customer');
+select is((select count(*)::int from public.approved_etas()),0,'unapproved ETA hidden from customer RPC');
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999992',true);
 select is((select fleet_no from public.vehicles),'B-1','controller tenant switch scoped');
 select throws_ok($$insert into public.jobs(tenant_id,vehicle_id,loading_code,loading_customer,delivery_code,delivery_customer,cargo,scheduled_at,destination_lat,destination_lng) values('22222222-2222-4222-8222-222222222222','aaaaaaaa-aaaa-4aaa-8aaa-000000000001','CPT','A','DBN','B','Goods',now(),-29,31)$$,'23503',null,'cross tenant vehicle reference denied');
