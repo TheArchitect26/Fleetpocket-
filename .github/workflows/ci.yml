@@ -1,0 +1,79 @@
+name: Fleet Pocket checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g npm@11
+      - run: npm ci
+      - run: npm audit --omit=dev
+      - run: npm ls next vitest @supabase/supabase-js
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          DEMO_MODE: "true"
+      - name: Browser failure context
+        if: failure()
+        run: find test-results -name error-context.md -exec cat {} \; || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-traces
+          path: test-results/
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+      - run: supabase start
+      - run: supabase test db
+
+  authenticated-workflows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g npm@11
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+      - run: supabase start > /tmp/fleet-supabase-start.log 2>&1
+      - run: supabase status -o env > /tmp/fleet-supabase.env
+      - name: Local routing fixture TLS certificate
+        run: openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/fleet-routing-key.pem -out /tmp/fleet-routing-cert.pem -days 1 -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
+      - run: node scripts/configure-integration.mjs
+      - run: node scripts/seed-integration.mjs
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.integration.config.ts
+      - name: Integration failure context
+        if: failure()
+        run: find test-results -name error-context.md -exec cat {} \; || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: authenticated-browser-traces
+          path: test-results/
