@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
-import { writeFile } from 'node:fs/promises';
+import { writeFile,appendFile } from 'node:fs/promises';
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
 if(!url||!['localhost','127.0.0.1'].includes(new URL(url).hostname))throw new Error('Fixtures are restricted to local Supabase');
 const db=createClient(url,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
 const run=crypto.randomUUID().slice(0,8),password='FleetPocket-local-test-only-2026!';
-const fixture={password,tenants:[crypto.randomUUID(),crypto.randomUUID()],vehicles:[crypto.randomUUID(),crypto.randomUUID()],users:{}};
+const fixture={password,tenants:[crypto.randomUUID(),crypto.randomUUID()],vehicles:[crypto.randomUUID(),crypto.randomUUID()],users:{},etaFleet:[]};
 async function checked(result){if(result.error)throw new Error(result.error.message);return result.data;}
 for(const role of ['controller','viewer','outsider','customer_admin']){
  const email=`${role}-${run}@fleet.test`;
@@ -22,5 +22,10 @@ for(let i=0;i<2;i++){
  await checked(await db.from('drivers').insert({id:driver,tenant_id:fixture.tenants[i],name:`Integration Driver ${i}`,phone:'+27 82 555 0199',licence_expiry:'2030-01-01',prdp_expiry:'2030-01-01'}));
  await checked(await db.from('vehicles').insert({id:fixture.vehicles[i],tenant_id:fixture.tenants[i],fleet_no:`TEST-${i}`,horse_reg:`TEST REG ${i}`,driver_id:driver}));
 }
+for(let i=0;i<12;i++){
+ const id=crypto.randomUUID();fixture.etaFleet.push(id);
+ await checked(await db.from('vehicles').insert({id,tenant_id:fixture.tenants[0],fleet_no:`ETA-${i.toString().padStart(2,'0')}`,horse_reg:`ETA TEST ${i}`,provider:'Cartrack'}));
+}
+await appendFile(process.env.GITHUB_ENV,`TRACKING_TENANT_ID=${fixture.tenants[0]}\n`);
 await writeFile('tests/.integration-fixtures.json',JSON.stringify(fixture));
 console.log('Local integration fixtures ready; no emails sent.');

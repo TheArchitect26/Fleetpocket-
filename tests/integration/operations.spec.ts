@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { test,expect,type Page } from '@playwright/test';
-const f=JSON.parse(readFileSync('tests/.integration-fixtures.json','utf8')) as {password:string;tenants:string[];vehicles:string[];users:Record<string,{email:string;id:string}>};
+const f=JSON.parse(readFileSync('tests/.integration-fixtures.json','utf8')) as {password:string;tenants:string[];vehicles:string[];etaFleet:string[];users:Record<string,{email:string;id:string}>};
 async function client(role:string){
  const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{auth:{persistSession:false}});
  const auth=await db.auth.signInWithPassword({email:f.users[role].email,password:f.password});expect(auth.error).toBeNull();return db;
@@ -26,7 +26,13 @@ test('real dispatch, exception recovery, private POD verification and closure',a
  await login(page);
  await page.getByRole('button',{name:'Create job',exact:true}).click();
  const form=page.getByRole('dialog',{name:'Create transport job'});
- await form.getByLabel('Loading customer',{exact:true}).fill('Integration collection');await form.getByLabel('Offloading customer',{exact:true}).fill('Integration delivery');await form.getByLabel('Cargo',{exact:true}).fill('Integration pallets');await form.getByLabel(/Scheduled delivery/).fill('2027-01-10T12:00');await form.getByLabel('Loading latitude',{exact:true}).fill('-33.9249');await form.getByLabel('Loading longitude',{exact:true}).fill('18.4241');await form.getByLabel('Destination latitude',{exact:true}).fill('-29.8587');await form.getByLabel('Destination longitude',{exact:true}).fill('31.0218');await form.getByRole('button',{name:'Create transport job'}).click();await expect(form).toHaveCount(0);
+ await form.getByLabel('Vehicle',{exact:true}).selectOption(f.vehicles[0]);
+ await form.getByLabel('Loading customer',{exact:true}).fill('Integration collection');await form.getByLabel('Offloading customer',{exact:true}).fill('Integration delivery');await form.getByLabel('Cargo',{exact:true}).fill('Integration pallets');await form.getByLabel(/Scheduled delivery/).fill('2027-01-10T12:00');await form.getByLabel('Loading latitude',{exact:true}).fill('-33.9249');await form.getByLabel('Loading longitude',{exact:true}).fill('18.4241');await form.getByLabel('Destination latitude',{exact:true}).fill('-29.8587');await form.getByLabel('Destination longitude',{exact:true}).fill('31.0218');await page.route('**/api/workspace',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Injected refresh failure'})}));
+ const posted=page.waitForRequest(r=>r.url().endsWith('/api/jobs')&&r.method()==='POST');
+ await form.getByRole('button',{name:'Create transport job'}).click();await expect(form).toHaveCount(0);
+ const payload=(await posted).postDataJSON();await page.unroute('**/api/workspace');await page.getByRole('button',{name:'Refresh now'}).click();
+ const replay=await page.request.post('/api/jobs',{data:payload});expect(replay.status()).toBe(201);
+ expect((await page.request.post('/api/jobs',{data:{...payload,cargo:'Changed cargo'}})).status()).toBe(409);
  await page.getByRole('button',{name:'Jobs & dispatch',exact:true}).click();
  const card=page.locator('.dispatch-card').filter({hasText:'Integration collection'});
  for(const stage of ['Assigned','Accepted','En Route to Loading','At Loading','Loaded','In Transit']){
@@ -66,3 +72,11 @@ test('customer admin can register only their own uploaded objects',async()=>{
  expect((await viewer.from('documents').select('id').eq('id',registered.data!.id)).data).toEqual([]);
  expect((await viewer.storage.from('fleet-documents').createSignedUrl(path,60)).error).toBeTruthy();
 });
+
+ test('map zoom survives a workspace polling refresh',async({page})=>{
+  await login(page);const map=page.getByTestId('fleet-map');await expect(map).toBeVisible();
+  const zoomIn=map.getByRole('button',{name:'Zoom in',exact:true});await expect(zoomIn).toBeVisible();await zoomIn.click();
+  await expect.poll(async()=>Number(await map.getAttribute('data-zoom'))).toBeGreaterThan(4.8);
+  const zoom=await map.getAttribute('data-zoom');await page.waitForResponse(r=>r.url().endsWith('/api/workspace')&&r.status()===200,{timeout:25000});
+  await expect(map).toHaveAttribute('data-zoom',zoom!);
+ });

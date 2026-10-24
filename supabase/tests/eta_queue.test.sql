@@ -26,13 +26,13 @@ update jobs set eta_next_calculation_at=now();update tracking_work set available
 create temporary table latest_claim as select * from claim_eta_work(5);
 select throws_ok($$select finish_eta_work(id,'00000000-0000-4000-8000-000000000000',now()+interval '2 hours','test') from latest_claim$$,'40001',null,'invalid lease rejected');
 select is((select finish_eta_work(id,lease_token,now()+interval '2 hours','test') from latest_claim),true,'current version publishes');
-select is((select stop_type from eta_history limit 1),'delivery','in-transit routes to delivery');
+select is((select stop_type from eta_history order by source_recorded_at desc limit 1),'delivery','in-transit routes to delivery');
 set local role authenticated;
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999995',true);
 select throws_ok($$select approve_eta('77777777-7777-4777-8777-777777777777','bbbbbbbb-bbbb-4bbb-8bbb-000000000003','00000000-0000-4000-8000-000000000000')$$,'40001',null,'approval rejects a different ETA version');
 select is(dispatch_job('77777777-7777-4777-8777-777777777777','bbbbbbbb-bbbb-4bbb-8bbb-000000000003',1,'In Transit'),1,'same-state dispatch does not bump version');
 select is((select eta from approved_etas() where job_id='bbbbbbbb-bbbb-4bbb-8bbb-000000000003'),now()+interval '2 hours','same-state dispatch preserves completed ETA');
-select lives_ok($$select approve_eta('77777777-7777-4777-8777-777777777777','bbbbbbbb-bbbb-4bbb-8bbb-000000000003',id) from eta_history limit 1$$,'exact reviewed version approves');
+select lives_ok($$select approve_eta('77777777-7777-4777-8777-777777777777','bbbbbbbb-bbbb-4bbb-8bbb-000000000003',id) from eta_history order by source_recorded_at desc limit 1$$,'exact reviewed version approves');
 reset role;
 select is(ingest_gps(pg_temp.eta_gps('three',5)),true,'third source queued');
 update jobs set eta_next_calculation_at=now();update tracking_work set available_at=now() where status='pending';

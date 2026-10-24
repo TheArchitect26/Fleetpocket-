@@ -3,5 +3,5 @@ export default defineConfig({
  testDir:'./tests/integration',workers:1,retries:0,timeout:90000,reporter:'list',
  use:{baseURL:'http://127.0.0.1:3100',trace:'retain-on-failure'},
  projects:[{name:'authenticated-chromium',use:{...devices['Desktop Chrome']}}],
- webServer:{command:'npm run start -- --port 3100',url:'http://127.0.0.1:3100',timeout:120000,reuseExistingServer:false}
+ webServer:[{command:'node scripts/routing-fixture.mjs',url:'https://127.0.0.1:4100/health',ignoreHTTPSErrors:true,reuseExistingServer:false},{command:'npm run start -- --port 3100',url:'http://127.0.0.1:3100',timeout:120000,reuseExistingServer:false}]
 });
