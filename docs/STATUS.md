@@ -1,3 +1,5 @@
+Current follow-up: [second audit implementation](SECOND-REMEDIATION.md) supersedes baseline descriptions of dispatch, ETA publication, queue durability and workspace consistency below. Historical verification counts below are preserved; use current PR checks for this milestone.
+
 # Delivery status and remaining work
 
 The audit-follow-up implementation is tracked in [REMEDIATION.md](REMEDIATION.md). The table and test counts below describe the earlier baseline; consult that milestone and the latest PR checks for current behavior.

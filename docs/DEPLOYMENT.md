@@ -12,6 +12,7 @@ See `.env.example`. Only the Supabase project URL and anonymous/publishable key 
 - `DEMO_MODE`: explicit `true` opt-in for fictional demonstrations; keep `false` for live workspaces. Missing Auth configuration otherwise shows an unavailable workspace.
 - `CRON_SECRET`: independent random secret, at least 32 characters.
 - `ROUTING_BASE_URL`: trusted HTTPS OSRM-compatible service. Public OSRM demo is for development only; obtain commercial/self-hosted capacity for production.
+- `ETA_WORKER_CONCURRENCY`, `ETA_WORKER_BUDGET_MS`, `ETA_WORKER_MAX_BATCHES`: bounded worker drain controls; defaults 5, 40000 ms and 8 batches. Host request limit must support 60 seconds. See the second remediation for capacity limits.
 - `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`: optional trusted OpenAI-compatible service. Missing configuration falls back to labelled rule-based summaries.
 
 ## Database setup
@@ -25,7 +26,7 @@ supabase link --project-ref YOUR_PROJECT
 supabase db push
 ```
 
-Migrations `001_foundation.sql` through `009_document_upload_ownership.sql` create data, policies, private storage and worker functions. Run in staging first. Do not apply this rebuild to the previous application's database.
+Migrations `001_foundation.sql` through `012_coherent_workspace_and_creation.sql` create data, policies, private storage and worker functions. Run in staging first. Do not apply this rebuild to the previous application's database.
 
 Provision tenants and Auth users through the Supabase admin dashboard. Insert explicit membership rows as a trusted administrator. Roles: admin/controller/customer_admin/customer_viewer. Customer admins create jobs/upload documents and manage customer-role membership for existing Auth identities using Team & access. Identity provisioning and email invitations remain an administrator task. Do not grant them service-role access. Disable public signup in remote Auth settings and configure application URL/callback allowlists. No default password or automatically privileged account exists.
 
@@ -43,7 +44,7 @@ Tracking gateway POST `/api/tracking` accepts JSON:
 {"tenant_id":"TENANT_UUID","vehicle_id":"VEHICLE_UUID","provider":"Cartrack","event_id":"provider-event-123","lat":-29.8587,"lng":31.0218,"speed":72,"recorded_at":"2026-10-23T12:00:00Z"}
 ```
 
-Register each vehicle's authorised provider. Real Cartrack/Netstar/MiX payload/signature adapters must be completed with provider documentation and test accounts. Current endpoint accepts the normalised schema, not arbitrary native payloads. It rejects future readings over one minute and readings older than one day. Position writes and ETA work creation are atomic. Routing runs in the separate leased worker. Deploy the worker scheduler before expecting computed ETAs. Leases expire after 60 seconds, failed work retries up to five attempts, and completed results are fenced against the exact GPS event and route version. See docs/REMEDIATION.md for publication policy and migration preflight.
+Register each vehicle's authorised provider. Real Cartrack/Netstar/MiX payload/signature adapters must be completed with provider documentation and test accounts. Current endpoint accepts the normalised schema, not arbitrary native payloads. It rejects future readings over one minute and readings older than one day. Position writes and ETA work creation are atomic. Routing runs in the separate leased worker. Deploy the worker scheduler before expecting computed ETAs. Leases expire after 60 seconds, failed work retries up to five attempts, and completed results are fenced against their source, route, stop, lease and monotonic completed-source time. Pending work coalesces to the latest GPS. See [the second remediation](SECOND-REMEDIATION.md) for worker capacity settings, reviewed-publication policy and migration preflight.
 
 ## Backups, monitoring and recovery
 

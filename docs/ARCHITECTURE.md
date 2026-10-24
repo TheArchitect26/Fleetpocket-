@@ -6,7 +6,7 @@ Next.js App Router serves the controller workspace and JSON APIs. UI components 
 
 Production data lives in Supabase PostgreSQL. Every owned row has `tenant_id`. Memberships explicitly grant customer or controller/admin roles per tenant. No controller automatically receives access to all customers. Composite foreign keys prevent linking a tenant's job to another tenant's vehicle/driver. Supabase RLS remains authoritative when a client bypasses the web API. Browser filtering is usability, not the security boundary.
 
-The app fetches only RLS-authorised records. `visible_jobs` omits raw ETAs; `approved_etas()` exposes an ETA only to controllers or when approved. Every newly computed ETA clears approval. Driver contact/document access currently follows tenant membership; finer document ACLs are a release requirement where customer users should have narrower rights.
+The app fetches only RLS-authorised records. `visible_jobs` omits raw ETAs; `approved_etas()` exposes an ETA only to controllers or when approved. A separate published pointer retains the exact reviewed version until expiry, route/stop change or a material ETA difference; new calculations never silently replace it. See [publication policy](SECOND-REMEDIATION.md). Driver contact/document access currently follows tenant membership; finer document ACLs are a release requirement where customer users should have narrower rights.
 
 Supabase session cookies authenticate web/API requests. Android can reuse the schema and PostgREST/RPC access with Supabase JWTs; web mutation endpoints currently expect cookie sessions. A mobile token-auth middleware and versioned API contract should be added before Android delivery.
 
