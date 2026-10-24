@@ -42,6 +42,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+          github-token: ${{ github.token }}
       - run: supabase start
       - run: supabase test db
 
@@ -58,6 +59,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+          github-token: ${{ github.token }}
       - run: supabase start > /tmp/fleet-supabase-start.log 2>&1
       - run: supabase status -o env > /tmp/fleet-supabase.env
       - name: Local routing fixture TLS certificate
