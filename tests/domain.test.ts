@@ -1,6 +1,6 @@
 import { describe,it,expect } from 'vitest';
 import { createDemo,tenantIds } from '../lib/demo';
-import { loadStatusFor,isGpsStale,scopeWorkspace,transition,whatsapp,detectAlerts,jobInput,gpsInput,stages,canWrite,canControl } from '../lib/domain';
+import { currentJobFor,deliveryTiming,loadStatusFor,isGpsStale,scopeWorkspace,transition,whatsapp,detectAlerts,jobInput,gpsInput,stages,canWrite,canControl } from '../lib/domain';
 const now=new Date();
 describe('tenant isolation',()=>{
  const data=createDemo(now);
@@ -14,6 +14,9 @@ describe('delivery lifecycle',()=>{
  it('traverses all stages with verified POD',()=>{for(let i=0;i<stages.length-1;i++)expect(transition(stages[i],stages[i+1],true)).toBe(stages[i+1]);});
  it('rejects skipping stages',()=>expect(()=>transition('Created','Loaded',true)).toThrow());
  it('synchronises load state through loading and delivery',()=>{expect(loadStatusFor('Loaded','Empty')).toBe('Loaded');expect(loadStatusFor('Delivered','Loaded')).toBe('Empty');expect(loadStatusFor('Exception','Loaded')).toBe('Loaded');});
+ it('does not unload a new trip when old paperwork is completed',()=>{let load=loadStatusFor('Delivered','Loaded');load=loadStatusFor('Loaded',load);expect(loadStatusFor('POD Received',load)).toBe('Loaded');expect(loadStatusFor('Closed',load)).toBe('Loaded');});
+ it('prefers a live trip over a planned job',()=>{const d=createDemo(now);const live={...d.jobs[0],status:'In Transit' as const};expect(currentJobFor([{...live,status:'Created'},live],live.vehicle_id)?.status).toBe('In Transit');});
+ it('does not score loading arrival against a delivery window',()=>{const d=createDemo(now),j={...d.jobs[0],eta_stop:'loading'};expect(deliveryTiming(j,now.getTime())).toBe('unknown');j.eta_stop='delivery';expect(deliveryTiming(j,now.getTime())).toBe('within window');j.eta_valid_until=new Date(now.getTime()-1000).toISOString();expect(deliveryTiming(j,now.getTime())).toBe('unknown');});
  it('blocks cancellation of loaded cargo',()=>expect(()=>transition('In Transit','Cancelled',false)).toThrow('cargo recovery'));
  it('requires verified POD',()=>expect(()=>transition('Delivered','POD Received',false)).toThrow('verified'));
  it('keeps closed and cancelled jobs terminal',()=>{expect(()=>transition('Closed','Created',true)).toThrow();expect(()=>transition('Cancelled','Assigned',true)).toThrow();});

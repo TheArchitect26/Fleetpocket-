@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(19);
+select plan(22);
 insert into auth.users(id,email) values('99999999-9999-4999-8999-999999999995','eta-controller@test.example');
 insert into tenants(id,name,code) values('77777777-7777-4777-8777-777777777777','ETA Test','ETA');
 insert into memberships values('77777777-7777-4777-8777-777777777777','99999999-9999-4999-8999-999999999995','controller');
@@ -16,10 +16,13 @@ select is((select count(*)::int from first_claim),1,'worker leases queued work')
 select lives_ok($$select fail_eta_work(id,lease_token,'routing_timeout') from first_claim$$,'routing failure is retryable');
 select is((select status from tracking_work limit 1),'pending','failed processing remains durable');
 update tracking_work set available_at=now();
+update jobs set eta_next_calculation_at=now();
 create temporary table retry_claim as select * from claim_eta_work(5);
 select is((select attempts from tracking_work limit 1),2,'retry did not need a new GPS event');
 select is(ingest_gps(pg_temp.eta_gps('two',10)),true,'newer source accepted');
-select is((select finish_eta_work(id,lease_token,now()+interval '3 hours','test') from retry_claim),false,'older completion cannot overwrite newer source');
+select is((select finish_eta_work(id,lease_token,now()+interval '3 hours','test') from retry_claim),true,'recent confirmed input can complete while newer input waits');
+select is((select count(*)::int from claim_eta_work(5)),0,'per-job cooldown avoids repeated routing');
+update jobs set eta_next_calculation_at=now();update tracking_work set available_at=now() where status='pending';
 create temporary table latest_claim as select * from claim_eta_work(5);
 select throws_ok($$select finish_eta_work(id,'00000000-0000-4000-8000-000000000000',now()+interval '2 hours','test') from latest_claim$$,'40001',null,'invalid lease rejected');
 select is((select finish_eta_work(id,lease_token,now()+interval '2 hours','test') from latest_claim),true,'current version publishes');
@@ -27,9 +30,12 @@ select is((select stop_type from eta_history limit 1),'delivery','in-transit rou
 set local role authenticated;
 select set_config('request.jwt.claim.sub','99999999-9999-4999-8999-999999999995',true);
 select throws_ok($$select approve_eta('77777777-7777-4777-8777-777777777777','bbbbbbbb-bbbb-4bbb-8bbb-000000000003','00000000-0000-4000-8000-000000000000')$$,'40001',null,'approval rejects a different ETA version');
+select is(dispatch_job('77777777-7777-4777-8777-777777777777','bbbbbbbb-bbbb-4bbb-8bbb-000000000003',1,'In Transit'),1,'same-state dispatch does not bump version');
+select is((select eta from approved_etas() where job_id='bbbbbbbb-bbbb-4bbb-8bbb-000000000003'),now()+interval '2 hours','same-state dispatch preserves completed ETA');
 select lives_ok($$select approve_eta('77777777-7777-4777-8777-777777777777','bbbbbbbb-bbbb-4bbb-8bbb-000000000003',id) from eta_history limit 1$$,'exact reviewed version approves');
 reset role;
 select is(ingest_gps(pg_temp.eta_gps('three',5)),true,'third source queued');
+update jobs set eta_next_calculation_at=now();update tracking_work set available_at=now() where status='pending';
 create temporary table expired_claim as select * from claim_eta_work(5);
 update tracking_work set lease_until=now()-interval '1 second' where status='leased';
 create temporary table recovered_claim as select * from claim_eta_work(5);
