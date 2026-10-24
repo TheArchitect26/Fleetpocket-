@@ -1,3 +1,5 @@
+> Historical first remediation milestone. [The second remediation](SECOND-REMEDIATION.md) supersedes the per-GPS publication policy and worker/dispatch details below.
+
 # Audit remediation — implementation milestone
 
 The [23 October audit](AUDIT-2026-10-23.md) records the earlier implementation. This milestone changes the code described there; it does not retroactively make the original findings passing tests. The historical audit probes capture the old behavior and are not the current regression suite.

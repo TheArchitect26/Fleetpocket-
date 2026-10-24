@@ -9,7 +9,7 @@ do $$declare t uuid;v uuid;j uuid;i int;k int;begin
   insert into vehicles(id,tenant_id,fleet_no,horse_reg,provider) values(v,t,'QUEUE-'||i,'CA QUEUE '||i,'Cartrack');
   insert into jobs(id,tenant_id,vehicle_id,loading_code,loading_customer,delivery_code,delivery_customer,cargo,status,scheduled_at,destination_lat,destination_lng) values(j,t,v,'CPT','Collection','DBN','Delivery','Goods','In Transit',now()+interval '1 day',-29,31);
   for k in 1..20 loop
-   perform ingest_gps(jsonb_build_object('tenant_id',t,'vehicle_id',v,'provider','Cartrack','event_id','burst-'||k,'lat',-30,'lng',28,'speed',60,'recorded_at',now()-make_interval(secs=>21-k)));
+   perform ingest_gps(jsonb_build_object('tenant_id',t,'vehicle_id',v,'provider','Cartrack','event_id',i||'-burst-'||k,'lat',-30,'lng',28,'speed',60,'recorded_at',now()-make_interval(secs=>21-k)));
   end loop;
  end loop;
 end $$;
