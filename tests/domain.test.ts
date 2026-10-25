@@ -28,7 +28,8 @@ describe('MCY WhatsApp template',()=>{
  it('supports trailerless vehicles',()=>{const d=createDemo(now);expect(whatsapp(d.vehicles[4],d.jobs[4],undefined,d.tenants[1])).toContain('Trailer Reg: N/A');});
 });
 describe('tracking and validation',()=>{
- it('flags stale signals and significant delays',()=>{const d=createDemo(now);const alerts=detectAlerts(d.vehicles[2],d.jobs[2],now);expect(alerts.map(a=>a.title)).toEqual(['Stale GPS signal','Delivery at risk']);});
+ it('flags stale signals without using expired forecasts',()=>{const d=createDemo(now);const alerts=detectAlerts(d.vehicles[2],d.jobs[2],now);expect(alerts.map(a=>a.title)).toEqual(['Stale GPS signal']);});
+ it('flags a significant delay from a valid delivery forecast',()=>{const d=createDemo(now);expect(detectAlerts(d.vehicles[7],d.jobs[7],now).map(a=>a.title)).toEqual(['Delivery at risk']);});
  it('does not invent an event for a healthy vehicle',()=>{const d=createDemo(now);expect(detectAlerts(d.vehicles[0],d.jobs[0],now)).toEqual([]);});
  it('rejects GPS coordinates outside Earth',()=>expect(gpsInput.safeParse({tenant_id:tenantIds[0],vehicle_id:createDemo(now).vehicles[0].id,provider:'Cartrack',event_id:'a',lat:91,lng:28,speed:70,recorded_at:now.toISOString()}).success).toBe(false));
  it('rejects incomplete jobs',()=>expect(jobInput.safeParse({cargo:'Steel'}).success).toBe(false));
