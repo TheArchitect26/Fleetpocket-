@@ -66,3 +66,22 @@ create or replace function workspace_snapshot() returns jsonb language sql stabl
  'truncated',(select coalesce(jsonb_agg(name),'[]'::jsonb) from(values('tenants',(select count(*) from ts)),('vehicles',(select count(*) from vs)),('drivers',(select count(*) from ds)),('jobs',(select count(*) from js)),('documents',(select count(*) from docs)),('alerts',(select count(*) from als)),('audit',(select count(*) from aus)),('handovers',(select count(*) from handovers)),('updates',(select count(*) from ups))) as sizes(name,n) where n>1000)
  );
 $$;
+
+-- Staff source IDs describe the displayed estimate, including a valid reviewed fallback.
+create or replace function approved_etas() returns table(job_id uuid,eta timestamptz,eta_id uuid,eta_state text,eta_source_at timestamptz,eta_valid_until timestamptz,eta_stop text,eta_mode text,eta_reviewed_at timestamptz) language sql stable security definer set search_path=public as $$
+ with estimates as(
+  select j.id,j.tenant_id,case when v.gps_at is null or v.gps_at<now()-interval '2 minutes' then 'awaiting recent GPS' else j.eta_state end as processing,has_tenant(j.tenant_id,false,true) as staff,
+   case when c.route_version=j.route_version and c.stop_type=job_stop(j.status) and c.valid_until>now() then c.id end as calculated,
+   case when p.route_version=j.route_version and p.stop_type=job_stop(j.status) and p.valid_until>now() and p.approved_at is not null and v.gps_at>=now()-interval '30 minutes' then p.id end as published
+  from jobs j join vehicles v on v.id=j.vehicle_id and v.tenant_id=j.tenant_id
+  left join eta_history c on c.id=j.current_eta_id and c.tenant_id=j.tenant_id
+  left join eta_history p on p.id=j.published_eta_id and p.tenant_id=j.tenant_id where has_tenant(j.tenant_id)
+ ), selected as(select s.*,case when staff and calculated is not null then calculated else published end as displayed from estimates s)
+ select s.id,e.eta,case when s.staff then s.displayed end,
+ case when s.displayed=s.published then case when s.processing='unavailable' then 'reviewed; routing unavailable' when s.processing='awaiting recent GPS' then 'reviewed; awaiting GPS for recalculation' else 'last reviewed' end
+ when s.displayed is not null then case when s.processing='pending' then 'calculated; refreshing' else 'calculated; review required' end
+ when s.processing='fresh' then 'awaiting review' else s.processing end,
+ e.source_recorded_at,e.valid_until,e.stop_type,
+ case when s.displayed=s.published then 'reviewed' when s.displayed is not null then 'calculated' else 'unavailable' end,e.approved_at
+ from selected s left join eta_history e on e.id=s.displayed and e.tenant_id=s.tenant_id;
+$$;
