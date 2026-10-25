@@ -30,9 +30,9 @@ create function export_jobs(t uuid default null) returns text language plpgsql s
 declare result text;
 begin
  if t is not null and not has_tenant(t) then raise exception using errcode='42501',message='Forbidden';end if;
- select '"Reference","Transporter","Route","Status","ETA stop","ETA mode","ETA source (UTC)","ETA (UTC)","Final delivery timing","Controller"'||E'\r\n'||coalesce(string_agg(
- csv_cell(j.reference)||','||csv_cell(c.name)||','||csv_cell(j.loading_code||' → '||j.delivery_code)||','||csv_cell(j.status)||','||csv_cell(e.eta_stop)||','||csv_cell(e.eta_mode)||','||csv_cell(to_char(e.eta_source_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'))||','||csv_cell(to_char(e.eta at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'))||','||csv_cell(case when e.eta is null or e.eta_stop<>'delivery' then 'unknown' when e.eta>j.scheduled_at then 'delayed' else 'within window' end)||','||csv_cell(j.controller),E'\r\n' order by j.id),'') into result
- from visible_jobs j join tenants c on c.id=j.tenant_id left join approved_etas() e on e.job_id=j.id where t is null or j.tenant_id=t;
+ select '"Reference","Transporter","Fleet number","Loading customer","Delivery customer","Cargo","Route","Status","ETA stop","ETA mode","ETA source (UTC)","ETA (UTC)","Final delivery timing","Controller"'||E'\r\n'||coalesce(string_agg(
+ csv_cell(j.reference)||','||csv_cell(c.name)||','||csv_cell(v.fleet_no)||','||csv_cell(j.loading_customer)||','||csv_cell(j.delivery_customer)||','||csv_cell(j.cargo)||','||csv_cell(j.loading_code||' → '||j.delivery_code)||','||csv_cell(j.status)||','||csv_cell(e.eta_stop)||','||csv_cell(e.eta_mode)||','||csv_cell(to_char(e.eta_source_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'))||','||csv_cell(to_char(e.eta at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"'))||','||csv_cell(case when e.eta is null or e.eta_stop<>'delivery' then 'unknown' when e.eta>j.scheduled_at then 'delayed' else 'within window' end)||','||csv_cell(j.controller),E'\r\n' order by j.id),'') into result
+ from visible_jobs j join tenants c on c.id=j.tenant_id join vehicles v on v.id=j.vehicle_id and v.tenant_id=j.tenant_id left join approved_etas() e on e.job_id=j.id where t is null or j.tenant_id=t;
  return result;
 end $$;
 revoke all on function export_jobs(uuid) from public,anon,authenticated;grant execute on function export_jobs(uuid) to authenticated;
@@ -45,7 +45,7 @@ create or replace function workspace_snapshot() returns jsonb language sql stabl
  js as materialized(select j.id,case when j.status in('Assigned','Accepted','En Route to Loading','At Loading','Loaded','In Transit','At Delivery','Exception') then 0 when j.status='Created' then 1 else 2 end as priority,
   to_jsonb(j)||coalesce(to_jsonb(e)-'job_id','{}'::jsonb)||jsonb_build_object('eta',coalesce(to_jsonb(e.eta),'""'::jsonb)) as payload from visible_jobs j left join approved_etas() e on e.job_id=j.id order by priority,j.id limit 1001),
  docs as materialized(select * from documents order by created_at desc,id desc limit 1001),
- als as materialized(select * from alerts order by created_at desc,id desc limit 1001),
+ als as materialized(select * from alerts order by case when status='resolved' then 1 else 0 end,created_at desc,id desc limit 1001),
  aus as materialized(select * from audit order by created_at desc,id desc limit 1001),
  handovers as materialized(select * from audit where action like 'Shift handover:%' order by created_at desc,id desc limit 1001),
  ups as materialized(select * from updates order by created_at desc,id desc limit 1001),

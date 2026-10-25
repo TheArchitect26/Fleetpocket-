@@ -1,4 +1,4 @@
-import { presentJob,canShareUpdate,updateTiming } from '../lib/domain';
+import { csvCell,presentJob,canShareUpdate,updateTiming } from '../lib/domain';
 import { describe,it,expect } from 'vitest';
 import { createDemo,tenantIds } from '../lib/demo';
 import { currentJobFor,deliveryTiming,loadStatusFor,isGpsStale,scopeWorkspace,transition,whatsapp,detectAlerts,jobInput,gpsInput,stages,canWrite,canControl } from '../lib/domain';
@@ -40,5 +40,6 @@ describe('tracking and validation',()=>{
 describe('operational freshness and exact communication approval',()=>{
  it('expires cached ETA value and approval id even without a refresh',()=>{const j={...createDemo(now).jobs[0],eta_valid_until:new Date(now.getTime()-1).toISOString(),eta_id:'old'};const shown=presentJob(j,now.getTime());expect(shown.eta).toBe('');expect(shown.eta_id).toBeNull();expect(deliveryTiming(shown,now.getTime())).toBe('unknown');expect(j.eta).not.toBe('');});
  it('a late approval response cannot authorise changed text or interval',()=>{const a={id:'one',text:'A',interval_minutes:30,vehicle_id:'vehicle',job_id:'job',job_version:1,valid_until:new Date(now.getTime()+60000).toISOString()};expect(canShareUpdate(a,'B',30,'vehicle','job',now.getTime(),1)).toBe(false);expect(canShareUpdate(a,'A',60,'vehicle','job',now.getTime(),1)).toBe(false);expect(canShareUpdate(a,'A',30,'other','job',now.getTime(),1)).toBe(false);expect(canShareUpdate(a,'A',30,'vehicle','job',now.getTime(),2)).toBe(false);expect(canShareUpdate(a,'A',30,'vehicle','job',now.getTime(),1)).toBe(true);expect(canShareUpdate(a,'A',30,'vehicle','job',now.getTime()+60000,1)).toBe(false);});
+ it('neutralises leading control characters without dropping original text',()=>{expect(csvCell('\t=1+1')).toBe("\"'\t=1+1\"");expect(csvCell('=1+1')).toBe("\"'=1+1\"");expect(csvCell('normal')).toBe('\"normal\"');});
  it('updates become due exactly at the scheduled boundary',()=>{const u={id:'u',tenant_id:'t',vehicle_id:'v',text:'approved',approved:true,created_at:now.toISOString(),interval_minutes:30};expect(updateTiming(undefined,now.getTime()).state).toBe('due');expect(updateTiming(u,now.getTime()+30*60000-1).state).toBe('scheduled');expect(updateTiming(u,now.getTime()+30*60000).state).toBe('due');});
 });
