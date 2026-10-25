@@ -25,7 +25,7 @@ npx playwright install chromium
 npm run testing:serve
 ```
 
-The command starts the project's local Supabase, creates isolated fictional tenants and accounts, runs database assertions, builds the app and serves http://127.0.0.1:3100/login with a local TLS routing substitute. It does **not** reset an existing database or send invitation emails. Existing local Supabase migrations must already be current; use a fresh checkout/project for a clean run. If migration changes are needed on a populated local database, follow the deployment migration instructions rather than resetting data automatically.
+The command starts the project's local Supabase, creates isolated fictional tenants and accounts, builds the app and serves http://127.0.0.1:3100/login with a local TLS routing substitute. It does **not** reset an existing database or send invitation emails. Existing local Supabase migrations must already be current; use a fresh checkout/project for a clean run. If migration changes are needed on a populated local database, follow the deployment migration instructions rather than resetting data automatically.
 
 Account emails and the local-only password are saved privately in ignored `tests/.integration-fixtures.json`. Open that file locally. Do not upload it or paste its contents into bug reports.
 
@@ -53,6 +53,8 @@ npm run test:integration
 ```
 
 `test:integration` performs the same isolated local setup as `testing:serve`, then runs Playwright and stops the app/routing processes. It runs real database/RLS and HTTP/browser workflows, not mocked database assertions. On Linux, Playwright may additionally require `npx playwright install --with-deps chromium`.
+
+The standalone SQL assertion suite (`npm run test:db`) assumes a clean disposable database and runs in its own CI job. The authenticated launcher exercises real database permissions through HTTP/browser workflows; it does not run global-count SQL fixtures over existing tester data or reset that data.
 
 CI uses the same setup components. The previous application milestone passed all three jobs in [run 40098124404](https://github.com/TheArchitect26/Fleetpocket-/actions/runs/40098124404). New testing-tool changes require their own current-head checks. Do not infer a new pass from the older run.
 

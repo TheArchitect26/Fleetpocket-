@@ -34,7 +34,7 @@ try{
   await run('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',env.FLEET_TEST_KEY_PATH,'-out',env.FLEET_TEST_CERT_PATH,'-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1']);
   await run('node',['scripts/configure-integration.mjs']);await loadEnv(env.GITHUB_ENV);
   await run('node',['scripts/seed-integration.mjs']);await loadEnv(env.GITHUB_ENV);
-  await run('supabase',['test','db']);await run('npm',['run','build']);
+  await run('npm',['run','build']);
   if(mode==='integration')await run('npx',['playwright','test','--config=playwright.integration.config.ts']);
   else{
    console.log('Authenticated test workspace: http://127.0.0.1:3100/login\nLocal test accounts: tests/.integration-fixtures.json (private; do not share).\nRouting is a local deterministic substitute. No live GPS or messaging. Ctrl+C stops the app; Supabase remains running.');
