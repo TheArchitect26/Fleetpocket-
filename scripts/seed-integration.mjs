@@ -27,5 +27,5 @@ for(let i=0;i<12;i++){
  await checked(await db.from('vehicles').insert({id,tenant_id:fixture.tenants[0],fleet_no:`ETA-${i.toString().padStart(2,'0')}`,horse_reg:`ETA TEST ${i}`,provider:'Cartrack'}));
 }
 await appendFile(process.env.GITHUB_ENV,`TRACKING_TENANT_ID=${fixture.tenants[0]}\n`);
-await writeFile('tests/.integration-fixtures.json',JSON.stringify(fixture));
+await writeFile('tests/.integration-fixtures.json',JSON.stringify(fixture,null,2),{mode:0o600});
 console.log('Local integration fixtures ready; no emails sent.');

@@ -2,6 +2,8 @@
 
 A clean Next.js/TypeScript rebuild of MCY's multi-customer logistics workspace. This is an implementation candidate, not a certified production release.
 
+See [the testing handover](docs/TESTING.md) for one-command demo/authenticated setup, test accounts and the acceptance checklist.
+
 ## Run
 
 Use Node.js 22 LTS or newer.

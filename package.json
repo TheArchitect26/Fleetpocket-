@@ -9,7 +9,13 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "testing:check": "node scripts/testing.mjs check",
+    "testing:demo": "node scripts/testing.mjs demo",
+    "testing:serve": "node scripts/testing.mjs serve",
+    "test:integration": "node scripts/testing.mjs integration",
+    "test:db": "supabase test db",
+    "test:tooling": "node --test scripts/testing.test.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",
