@@ -1,0 +1,41 @@
+{
+  "scope": "Pure source-function probes and capacity arithmetic only. No application code changed.",
+  "domain_sha256": "53c903e5cf14b09ad3305e8ab4c3af1a9c055e0c1c45804272e1dec0cc0103c3",
+  "observations": [
+    {
+      "finding": "R01",
+      "method": "actual domain helper",
+      "beforeOldPaperwork": "Loaded",
+      "afterOldPod": "Empty",
+      "afterOldClosure": "Empty",
+      "limitation": "Database trigger has the same rule; database reproduction SQL is supplied separately and was not executed here."
+    },
+    {
+      "finding": "R02",
+      "method": "actual domain helper positive control",
+      "observed": "The frontend lifecycle helper rejects a same-state transition. The database RPC/trigger path requires separate review and has no equivalent rejection."
+    },
+    {
+      "finding": "R07",
+      "method": "actual extracted API helper with stubbed successful write and failed refresh",
+      "first": {
+        "writes": 1,
+        "error": "Refresh failed after successful write"
+      },
+      "retry": {
+        "writes": 2,
+        "error": "Refresh failed after successful write"
+      },
+      "limitation": "Models the HTTP success/refresh-failure boundary. No real records were created."
+    },
+    {
+      "finding": "R03/R04",
+      "method": "analytical calculation, not a load benchmark",
+      "workerClaimsPerInvocation": 5,
+      "documentedInvocationsPerMinute": 1,
+      "incomingWorkPerMinute": 12,
+      "minimumBacklogGrowthPerMinute": 7,
+      "approvalsPerHourIfEveryVersionPublished": 720
+    }
+  ]
+}

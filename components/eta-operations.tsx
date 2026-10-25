@@ -1,0 +1,10 @@
+'use client';
+import { useEffect,useState } from 'react';
+import { Button } from './ui/button';
+type Health={pending:number;ready:number;leased:number;failed:number;oldest_ready_seconds:number;failures:{job_id:string;attempts:number;last_error:string}[]};
+export function EtaOperations({tenantId}:{tenantId:string}){
+ const [health,setHealth]=useState<Health|null>(null),[error,setError]=useState('');
+ async function load(){try{const r=await fetch(`/api/worker?tenant_id=${tenantId}`,{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error);setHealth(d);setError('');}catch(e){setError((e as Error).message);}}
+ useEffect(()=>{let active=true;const refresh=async()=>{try{const r=await fetch(`/api/worker?tenant_id=${tenantId}`,{cache:'no-store'});const d=await r.json();if(!r.ok)throw new Error(d.error);if(active){setHealth(d);setError('');}}catch(e){if(active)setError((e as Error).message);}};void refresh();const timer=setInterval(()=>void refresh(),15000);return()=>{active=false;clearInterval(timer);};},[tenantId]);
+ return <section className="card"><div className="card-heading"><div><h2>ETA processing</h2><p>Confirmed GPS history is retained; route work uses the newest queued input.</p></div><Button variant="outline" onClick={load}>Refresh queue</Button></div>{error&&<p className="info-note" role="status">{error}</p>}{health&&<><div className="info-note">{health.ready} ready · {health.pending} pending · {health.leased} processing · {health.failed} failed · oldest ready {Math.floor(health.oldest_ready_seconds)} seconds</div>{health.failures.map((f,i)=><div className="incident-row" key={`${f.job_id}-${i}`}><div><strong>Job {f.job_id.slice(0,8)}</strong><p>{f.last_error} · {f.attempts} attempts</p></div><Button variant="outline" onClick={async()=>{try{const r=await fetch('/api/worker/retry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:tenantId,job_id:f.job_id})});const d=await r.json();if(!r.ok)throw new Error(d.error);await load();}catch(e){setError((e as Error).message);}}}>Retry latest GPS</Button></div>)}</>}</section>;
+}

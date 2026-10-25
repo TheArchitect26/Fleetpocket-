@@ -1,0 +1,3 @@
+import { z } from 'zod';
+import { session,membership,rateLimit,databaseError,failure } from '@/lib/server';
+export async function GET(request:Request){try{const value=new URL(request.url).searchParams.get('tenant_id');const tenant=value?z.string().uuid().parse(value):null;const {db,user}=tenant?await membership(tenant):await session();await rateLimit(db,`${user.id}:exports`,5);const {data,error}=await db.rpc('export_jobs',{t:tenant});databaseError(error);return new Response('\uFEFF'+data,{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="fleet-pocket-report.csv"','Cache-Control':'no-store'}});}catch(e){return failure(e);}}

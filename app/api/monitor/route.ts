@@ -1,0 +1,6 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { workerDb,secretMatches } from '@/lib/worker';
+import { membership,mutation,failure,databaseError,rateLimit } from '@/lib/server';
+export async function POST(request:Request){try{if(!secretMatches(request.headers.get('authorization'),process.env.CRON_SECRET?`Bearer ${process.env.CRON_SECRET}`:undefined))return NextResponse.json({error:'Unauthorised'},{status:401});const {data,error}=await workerDb().rpc('monitor_fleet');databaseError(error);return NextResponse.json({ok:true,conditions_observed:data});}catch(e){return failure(e);}}
+export async function PATCH(request:Request){try{await mutation(request);const input=z.object({id:z.string().uuid(),tenant_id:z.string().uuid(),expected_version:z.number().int().positive(),command:z.enum(['acknowledge','claim','resolve']),note:z.string().min(3).max(1000).optional()}).parse(await request.json());const {db,user}=await membership(input.tenant_id,true,true);await rateLimit(db,`${user.id}:incidents`);const {data,error}=await db.rpc('incident_command',{t:input.tenant_id,a:input.id,expected_version:input.expected_version,command:input.command,note:input.note||null});databaseError(error);return NextResponse.json({ok:true,version:data});}catch(e){return failure(e);}}
