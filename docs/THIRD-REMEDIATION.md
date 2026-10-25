@@ -27,9 +27,9 @@ Due-update reminders are evaluated by the existing monitor schedule, documented 
 
 ## Rollout and compatibility
 
-Apply migrations 013–015 in staging after 001–012. Deploy the matching application with the migrations: direct authenticated writes to updates/alerts are revoked. Approval POST now requires job_id and request_key and returns the exact saved snapshot. Incident PATCH now requires a command and expected_version; bare acknowledgement writes are rejected. Existing approved-history rows remain historical evidence; new provenance fields are not fabricated for them.
+Apply migrations 013–015 in staging after 001–012. Deploy the matching application with the migrations: direct authenticated writes to updates/alerts are revoked. Approval POST now requires job_id, job_version and request_key, with source_eta_id for a preview containing a calculated ETA and returns the exact saved snapshot. Incident PATCH now requires a command and expected_version; bare acknowledgement writes are rejected. Existing approved-history rows remain historical evidence; new provenance fields are not fabricated for them.
 
-Approval validity is at most 15 minutes, shortened to a current ETA's earlier expiry when applicable. Editing text/interval, changing vehicle/job or advancing the job invalidates sharing through the current preview. A fresh GPS sample alone does not rewrite the immutable approved message.
+Approval validity is at most 15 minutes, shortened to a current ETA's earlier expiry when applicable. Editing text/interval, changing vehicle/job or advancing the job invalidates sharing through the current preview. A preview retains its original job version and ETA source; expired or changed context requires regeneration before approval. A fresh GPS sample alone does not rewrite the immutable approved message. The source snapshot distinguishes the reviewed ETA from GPS observations at approval time.
 
 Records/export RPCs execute with caller RLS. Arbitrary table names are never accepted; collections are allowlisted. Customer users still cannot read unreleased documents or raw operational audit history. Monitor condition evaluation remains server-only and serialised to avoid overlapping reconciliation.
 

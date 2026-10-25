@@ -15,14 +15,14 @@ update alerts set status=case when acknowledged then 'acknowledged' else 'open' 
 create unique index incident_condition on alerts(tenant_id,condition_key) where condition_key is not null;
 revoke insert,update,delete on alerts from authenticated;
 create view fleet_conditions with(security_invoker=true) as
- select v.tenant_id,v.id as vehicle_id,'gps:'||v.id as condition_key,'warning'::text as severity,'Stale GPS signal'::text as title,'No confirmed GPS received for over 30 minutes'::text as detail
+ select v.tenant_id,v.id as vehicle_id,'gps:'||v.id as condition_key,'warning'::text as severity,'Stale GPS signal'::text as title,v.fleet_no||': no confirmed GPS received for over 30 minutes' as detail
  from vehicles v where v.gps_at is null or v.gps_at<now()-interval '30 minutes'
  union all
  select j.tenant_id,j.vehicle_id,'delay:'||j.id,'critical','Delivery at risk',j.reference||': valid delivery ETA exceeds the window by over 30 minutes'
  from jobs j join eta_history e on e.id=j.current_eta_id and e.tenant_id=j.tenant_id
  where j.status in('Loaded','In Transit','At Delivery') and e.route_version=j.route_version and e.stop_type='delivery' and e.valid_until>now() and e.eta>j.scheduled_at+interval '30 minutes'
  union all
- select v.tenant_id,v.id,'stop:'||v.id,'warning','Unexpected stop','Zero-speed GPS samples for 20 minutes in transit. Controller confirmation required.'
+ select v.tenant_id,v.id,'stop:'||v.id,'warning','Unexpected stop',v.fleet_no||': zero-speed GPS samples for 20 minutes in transit. Controller confirmation required.'
  from vehicles v where v.gps_at>now()-interval '10 minutes' and exists(select 1 from jobs j where j.vehicle_id=v.id and j.tenant_id=v.tenant_id and j.status='In Transit')
  and (select count(*) from tracking_events e where e.vehicle_id=v.id and e.tenant_id=v.tenant_id and e.recorded_at>now()-interval '25 minutes')>=3
  and not exists(select 1 from tracking_events e where e.vehicle_id=v.id and e.tenant_id=v.tenant_id and e.recorded_at>now()-interval '25 minutes' and e.speed>3)
@@ -36,7 +36,7 @@ create view fleet_conditions with(security_invoker=true) as
  union all
  select j.tenant_id,j.vehicle_id,'pod:'||j.id,'warning','Missing POD',j.reference||': delivered; matching verified POD outstanding' from jobs j where j.status='Delivered' and not exists(select 1 from documents d where d.tenant_id=j.tenant_id and d.job_id=j.id and d.vehicle_id=j.vehicle_id and d.kind='Proof of delivery' and d.verified)
  union all
- select v.tenant_id,v.id,'update:'||v.id,'warning','Vehicle update due',case when u.id is null then 'First approved vehicle update required' else 'Approved update due since '||(u.created_at+make_interval(mins=>u.interval_minutes))::text end
+ select v.tenant_id,v.id,'update:'||v.id,'warning','Vehicle update due',v.fleet_no||': '||case when u.id is null then 'First approved vehicle update required' else 'Approved update due since '||(u.created_at+make_interval(mins=>u.interval_minutes))::text end
  from vehicles v left join lateral(select x.* from updates x where x.tenant_id=v.tenant_id and x.vehicle_id=v.id and x.approved order by x.created_at desc,x.id desc limit 1)u on true
  where exists(select 1 from jobs j where j.tenant_id=v.tenant_id and j.vehicle_id=v.id and j.status in('Assigned','Accepted','En Route to Loading','At Loading','Loaded','In Transit','At Delivery','Exception'))
  and (u.id is null or u.created_at+make_interval(mins=>u.interval_minutes)<=now());

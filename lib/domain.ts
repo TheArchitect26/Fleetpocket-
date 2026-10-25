@@ -39,3 +39,4 @@ export type ApprovedUpdate={id:string;text:string;interval_minutes:number;vehicl
 export function canShareUpdate(approval:ApprovedUpdate|null,draft:string,interval:number,vehicle:string|null,job:string|undefined,at:number=Date.now(),version?:number){return !!approval&&approval.text===draft&&approval.interval_minutes===interval&&approval.vehicle_id===vehicle&&approval.job_id===job&&(version===undefined||approval.job_version===version)&&Date.parse(approval.valid_until)>at;}
 
 export function csvCell(value:unknown){const raw=String(value??'');const safe=/^[\s\p{Cc}]*[=+@-]/u.test(raw)?"'"+raw:raw;return '"'+safe.replaceAll('"','""')+'"';}
+export function draftFresh(expires:string|null,at:number=Date.now()){return expires===null||Number.isFinite(Date.parse(expires))&&Date.parse(expires)>at;}
