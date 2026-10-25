@@ -1,5 +1,7 @@
 # Fleet Pocket testing handover
 
+See the [user guide](USER_GUIDE.md) for product workflows and [latest audit](AUDIT-2026-10-25.md) for open acceptance issues.
+
 This is a development testing candidate. Use fictional data and a dedicated local checkout. Live tracking, WhatsApp delivery, production hosting and operational backup/monitoring are not configured.
 
 ## Quick visual test

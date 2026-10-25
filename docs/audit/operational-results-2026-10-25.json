@@ -1,0 +1,40 @@
+{
+  "baseline": "8e8d222 / published application 021e1b37021b96bc5fb3a3064ac8eb082e0e4e5a",
+  "method": "Extracted pure helpers plus explicitly mirrored UI/sanitiser branches. No browser, database or spreadsheet execution.",
+  "observations": [
+    {
+      "finding": "A01",
+      "probe": "expired ETA label",
+      "domainTiming": "unknown",
+      "currentTableLabel": "Within delivery window",
+      "problemReproduced": true
+    },
+    {
+      "finding": "A02",
+      "probe": "approval completion after editing (state-sequence mirror)",
+      "submittedText": "Version A",
+      "currentPreview": "Version B",
+      "copyEnabled": true,
+      "problemReproduced": true
+    },
+    {
+      "finding": "A03",
+      "probe": "overdue update badge (label-branch mirror)",
+      "overdueMinutes": 90,
+      "currentBadge": "Approved update",
+      "problemReproduced": true
+    },
+    {
+      "finding": "A07",
+      "probe": "Created job included by active helper",
+      "currentActive": true,
+      "problemReproduced": true
+    },
+    {
+      "finding": "A14",
+      "probe": "CSV leading-tab neutralisation (sanitiser mirror)",
+      "leadingTabRemains": true,
+      "problemReproduced": true
+    }
+  ]
+}

@@ -18,13 +18,15 @@ See `.env.example`. Only the Supabase project URL and anonymous/publishable key 
 ## Database setup
 
 ```sh
+# Fresh disposable local project only; SQL fixtures assume clean data.
 supabase start
-supabase db reset
 supabase test db
 # For a dedicated remote project:
 supabase link --project-ref YOUR_PROJECT
 supabase db push
 ```
+
+For an intentionally disposable local project only, `supabase db reset` rebuilds the database and deletes its data. Do not use it as a migration step on tester, staging or production records.
 
 Migrations `001_foundation.sql` through `012_coherent_workspace_and_creation.sql` create data, policies, private storage and worker functions. Run in staging first. Do not apply this rebuild to the previous application's database.
 

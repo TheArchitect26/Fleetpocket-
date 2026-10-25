@@ -1,51 +1,57 @@
-# Fleet Pocket · Musa Connect Yield
+# Fleet Pocket
 
-A clean Next.js/TypeScript rebuild of MCY's multi-customer logistics workspace. This is an implementation candidate, not a certified production release.
+**Fleet operations, coordinated by Musa Connect Yield (MCY).**
 
-See [the testing handover](docs/TESTING.md) for one-command demo/authenticated setup, test accounts and the acceptance checklist.
+Fleet Pocket gives MCY controllers one workspace to oversee the transport companies they are authorised to manage. It brings vehicles, drivers, delivery jobs, location updates, documents and customer communication together so controllers can see what needs attention and keep each delivery moving.
 
-## Run
+Each transport company has its own fleet and records. MCY staff can switch between authorised customers or work across their authorised fleets. Customer users see the records their company and role permit.
 
-Use Node.js 22 LTS or newer.
+## What the app does
 
-```sh
-npm ci
-cp .env.example .env.local
-DEMO_MODE=true npm run dev
-```
+| Workspace | What you can do |
+|---|---|
+| Control tower | Review vehicles, trips, delivery risks, overdue location signals and missing delivery paperwork. Open a vehicle without leaving the fleet view. |
+| Fleet and drivers | Register vehicles and drivers, organise vehicles into customer groups, and view registrations, trailers, contacts, load state and recent history. |
+| Jobs and dispatch | Create a transport job and advance it from assignment through loading, delivery, proof of delivery and closure. Record and resolve a job exception. |
+| Tracking and ETAs | View the last received GPS position and its timestamp. Calculate road-based arrival estimates to the active loading or delivery stop when a tracking connection is configured. Review an estimate before customer publication. |
+| Vehicle updates | Generate the MCY WhatsApp template from the vehicle and job, review the text, approve it, and copy it or open WhatsApp for a manual send. View saved update history. |
+| Documents and PODs | Upload private PDF or image documents, preview them, verify delivery evidence, and release eligible documents to customer users. A matching verified POD is required before the delivery paperwork stages can finish. |
+| Incidents and handovers | Review operational alerts, acknowledge them, inspect job exceptions and record notes for the next controller. |
+| Reports | Review the current fleet snapshot, delivery forecasts and controller workload, and export the selected workspace to CSV. |
+| Operations summary | Request a short summary of alert counts. When AI is unavailable, use the clearly labelled rules summary and check the original records. |
+| Customer portal | Let authorised customer users follow their fleet, see reviewed arrival estimates and access released delivery documents. Customer administrators can submit jobs and manage customer access for existing accounts. |
 
-With `DEMO_MODE=true` and without Supabase variables, `/` opens a clearly labelled fictional demonstration: 3 companies, 12 vehicles/drivers, jobs, document metadata and alerts. Demo edits persist only in browser local storage. No real documents, GPS, AI output or messages are sent. Reset demo restores fixtures.
+## A typical delivery
 
-With Supabase configured, `/` requires a valid Supabase session. No public sign-up or implicit membership. Apply migrations and provision memberships before inviting users.
+A customer administrator or MCY staff member creates a job with a vehicle, cargo, collection point, destination and delivery time. A controller assigns it and moves it through collection and loading. When tracking is connected, Fleet Pocket records confirmed GPS readings and calculates an arrival estimate for the active stop.
 
-## Included
+The controller reviews customer-facing estimates and vehicle updates, follows up exceptions, then records delivery. After the matching POD has been uploaded and verified, the job can move through POD Received to Closed. Eligible documents can be released separately to the customer.
 
-- Responsive control tower, tenant selector, searchable fleet table, MapLibre map, driver/vehicle drawer and status filters.
-- Job creation, ordered dispatch lifecycle, exceptions/cancellation and verified-POD closure guard.
-- Private PDF/image upload, signature/type/size checks, signed previews, controller verification and document expiry monitoring.
-- Exact MCY update format, two trailer rows, editable preview, explicit controller approval, manual copy/share, update history and interval scheduling metadata.
-- Tenant-scoped CSV reports, workload overview, alert acknowledgement, handover notes and database audit triggers.
-- Supabase Auth, tenant memberships, RLS, tenant-qualified foreign keys and approved-ETA access.
-- Authenticated tracking webhook, idempotent GPS ingestion, monotonic confirmed positions, OSRM road ETA abstraction, ETA history and scheduled monitoring endpoint.
-- Server-only AI abstraction with deterministic, labelled fallback.
+## Who uses it
 
-## Verification
+- **MCY administrators:** oversee authorised customer workspaces and access arrangements.
+- **Fleet controllers:** coordinate vehicles, dispatch, customer updates, delivery evidence and shift notes.
+- **Customer administrators:** submit jobs, upload documents and manage customer-role access for existing users in their company.
+- **Customer viewers:** follow their authorised fleet and view reviewed estimates and released documents.
 
-```sh
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npx playwright install chromium
-DEMO_MODE=true npm run test:e2e
-supabase start
-supabase test db
-```
+Access is assigned per company. A staff role does not automatically grant access to every customer. Account creation and invitations currently require an administrator outside the app.
 
-CI runs these checks on push/PR. Unit tests cover tenant filtering, role permissions, lifecycle guards, MCY formatting, stale GPS and validation. Browser tests cover fleet scoping, create/advance dispatch, approval/history, mobile usability and unauthenticated API rejection. pgTAP exercises actual database RLS and cross-tenant references.
+## Understanding the information
 
-See the [second audit implementation milestone](docs/SECOND-REMEDIATION.md) for coalesced tracking, reviewed publications and replay-safe commands.
+A GPS position is the last received reading, not a continuously moving estimate of a vehicle's location. An ETA is an estimate tied to a source reading and a specific stop. An arrival at loading is not a forecast of final delivery. Customer publication requires controller review and has a limited validity period.
 
-See the earlier [audit remediation milestone](docs/REMEDIATION.md) for the new database commands, document release policy, durable ETA workers and authenticated test coverage. The baseline audit remains a historical record.
+Reports currently describe the available workspace snapshot. They are not historical delivery-performance or contractual SLA reports. Saving or sharing an update does not prove that a WhatsApp message was delivered.
 
-See [deployment](docs/DEPLOYMENT.md), [architecture](docs/ARCHITECTURE.md), and [limitations and delivery status](docs/STATUS.md). Never infer passing checks from the existence of a test file; consult CI results.
+## Current availability
+
+Fleet Pocket is available as a **controlled local testing candidate**. A fictional demonstration includes three transport companies and twelve vehicles. The authenticated test workspace exercises actual sign-in, company isolation, dispatch and private document handling with fictional accounts and local test services.
+
+A hosted preview and live tracking connections have not been configured. Automatic WhatsApp sending and reminder delivery are not implemented. Fleet editing, complete incident management, large-record pagination and production operating controls remain unfinished. The [current status](docs/STATUS.md) and [latest audit](docs/AUDIT-2026-10-25.md) describe these limits, including known issues testers should record.
+
+## Learn more
+
+- [User guide](docs/USER_GUIDE.md): using the workspace and handling a delivery.
+- [Administrator and operations guide](docs/OPERATIONS.md): access, shift routines and service failures.
+- [Testing guide](docs/TESTING.md): how to open the demo or authenticated test environment, test accounts and acceptance steps.
+- [What comes next](docs/ROADMAP.md): priorities and the conditions for a live pilot.
+- [Documentation directory](docs/README.md): product, testing and technical reference material.
