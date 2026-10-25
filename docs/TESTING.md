@@ -58,7 +58,7 @@ npm run test:integration
 
 The standalone SQL assertion suite (`npm run test:db`) assumes a clean disposable database and runs in its own CI job. The authenticated launcher exercises real database permissions through HTTP/browser workflows; it does not run global-count SQL fixtures over existing tester data or reset that data.
 
-CI uses the same setup components. The previous application milestone passed all three jobs in [run 40098124404](https://github.com/TheArchitect26/Fleetpocket-/actions/runs/40098124404). New testing-tool changes require their own current-head checks. Do not infer a new pass from the older run.
+CI uses the same setup components. The operational remediation passed all three jobs in [run 40207318189](https://github.com/TheArchitect26/Fleetpocket-/actions/runs/40207318189) on application commit `8b52c46d6d2aebaff3700c396392cb67286ea565`. Later application changes require their own checks. Documentation-only commits may follow that tested application version.
 
 ## Acceptance checklist
 
@@ -81,3 +81,5 @@ Ready for a controlled pilot only after acceptance results are reviewed and the 
 
 
 Current regression coverage and migration contracts are listed in [Operational remediation](THIRD-REMEDIATION.md). In UAT, also edit a preview while approval is pending, advance the browser clock across ETA/approval/update due boundaries, acknowledge/own/resolve an incident, and verify one explicit company is required for handovers/access/summaries. For datasets over 1,000 records, use All records and a complete CSV; the overview remains bounded.
+
+After upgrading an existing browser-local demonstration, Reset demo loads the new fictional source/expiry metadata. This resets only fictional browser-local demo changes; it does not reset a configured database.
