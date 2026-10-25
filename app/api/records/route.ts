@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { session,membership,databaseError,failure } from '@/lib/server';
+export async function GET(request:Request){try{const input=z.object({collection:z.enum(['vehicles','drivers','jobs','documents','updates','alerts','handover','audit']),tenant_id:z.string().uuid().optional(),page:z.coerce.number().int().min(0).max(1000000).default(0),query:z.string().max(100).default('')}).parse(Object.fromEntries(new URL(request.url).searchParams));const {db}=input.tenant_id?await membership(input.tenant_id):await session();const {data,error}=await db.rpc('workspace_records',{collection:input.collection,t:input.tenant_id||null,page:input.page,page_size:50,query:input.query});databaseError(error);return NextResponse.json(data,{headers:{'Cache-Control':'no-store'}});}catch(e){return failure(e);}}

@@ -80,3 +80,19 @@ test('customer admin can register only their own uploaded objects',async()=>{
   const zoom=await map.getAttribute('data-zoom');await page.waitForResponse(r=>r.url().endsWith('/api/workspace')&&r.status()===200,{timeout:25000});
   await expect(map).toHaveAttribute('data-zoom',zoom!);
  });
+
+test('approval is bound to the submitted version while the preview remains editable',async({page})=>{
+ await login(page);await page.getByRole('row',{name:'Open TEST-0'}).click();await page.getByRole('button',{name:'Generate Update',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Preview Update'});
+ let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});let submitted!:()=>void;const sent=new Promise<void>(resolve=>{submitted=resolve;});
+ await page.route('**/api/updates',async route=>{const response=await route.fetch();submitted();await gate;await route.fulfill({response});});
+ const original=await dialog.getByLabel('Update preview').inputValue();await dialog.getByRole('button',{name:'Approve update',exact:true}).click();await sent;
+ await dialog.getByLabel('Update preview').fill(original+'\nCorrected controller note');release();await expect(dialog.getByRole('button',{name:'Approve update',exact:true})).toBeEnabled();await expect(dialog.getByRole('button',{name:'Share to WhatsApp'})).toBeDisabled();
+ await dialog.getByRole('button',{name:'Approve update',exact:true}).click();await expect(dialog.getByRole('button',{name:'Share to WhatsApp'})).toBeEnabled();
+ await dialog.getByLabel('Update interval').selectOption('120');await expect(dialog.getByRole('button',{name:'Share to WhatsApp'})).toBeDisabled();
+ const controller=await client('controller');expect((await controller.from('updates').update({text:'Changed outside approval'}).eq('tenant_id',f.tenants[0])).error?.code).toBe('42501');
+});
+test('record paging and complete export enforce customer scope',async({page})=>{
+ await login(page);await page.getByRole('button',{name:'All records',exact:true}).click();await expect(page.getByRole('heading',{name:'All authorised records'})).toBeVisible();await expect(page.getByText(/matching records/)).toBeVisible();
+ expect((await page.request.get(`/api/records?collection=jobs&tenant_id=${f.tenants[1]}`)).status()).toBe(403);
+ const csv=await page.request.get(`/api/reports?tenant_id=${f.tenants[0]}`);expect(csv.status()).toBe(200);expect(await csv.text()).toContain('Integration collection');expect((await page.request.get(`/api/reports?tenant_id=${f.tenants[1]}`)).status()).toBe(403);
+});
