@@ -12,7 +12,7 @@ if(Number(process.versions.node.split('.')[0])<22)issues.push('Node.js 22 or new
 if(!existsSync('node_modules/next/package.json'))issues.push('Run npm ci first');
 // Next dotenv files override parts of process.env. Refuse them for isolated fixtures.
 for(const name of dotenvConflicts())issues.push(`Move ${name} outside this checkout before running isolated testing`);
-if(!issues.length&&(mode==='integration'||mode==='serve'))for(const cmd of ['supabase','docker','openssl'])if(spawnSync(cmd,['--version'],{stdio:'ignore'}).status!==0)issues.push(`Install ${cmd} and put it on PATH`);
+if(!issues.length&&(mode==='integration'||mode==='serve'))for(const cmd of ['supabase','docker','openssl'])if(spawnSync(cmd,cmd==='openssl'?['version']:['--version'],{stdio:'ignore'}).status!==0)issues.push(`Install ${cmd} and put it on PATH`);
 if(issues.length){console.error(issues.map(i=>`• ${i}`).join('\n'));process.exit(1);}
 if(mode==='check'){console.log('Local prerequisites passed. Authenticated testing also requires Docker, Supabase CLI and OpenSSL.');process.exit(0);}
 const env={...process.env,DEMO_MODE:'true',APP_ORIGIN:'http://127.0.0.1:3000'};
