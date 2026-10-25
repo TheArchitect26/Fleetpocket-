@@ -69,7 +69,7 @@ Record pass/fail, browser, commit and evidence for each item:
 3. **POD:** deliver a job; verify POD Received is blocked until its matching document is verified. Upload a fictional PDF, preview it, verify it, then release it. A customer must see it only after release; Tenant B must never see it. Finish POD Received and Closed.
 4. **Physical load:** deliver job A, load job B on the same vehicle, then finish A's paperwork. Vehicle load must remain Loaded for B.
 5. **ETA:** automated HTTP suite verifies twelve vehicles, burst coalescing, outages/retry, exact reviewed publication and material-change withdrawal. Loading ETA must be labelled separately and excluded from delivery performance. No GPS must appear as confirmed before ingestion.
-6. **Updates:** generate the MCY template with both trailer rows; preview and approve before Copy/Share. WhatsApp opens a manual share link; this is not delivery confirmation. Scheduling currently records interval metadata, not reminder delivery.
+6. **Updates:** generate the MCY template with both trailer rows; preview and approve before Copy/Share. WhatsApp opens a manual share link; this is not delivery confirmation. Due badges update with the clock; the monitor creates due-update incidents. No external reminder delivery is claimed.
 7. **Resilience:** preserve map zoom through polling. Failed refresh after a committed job must not duplicate it on retry. Disconnect network and confirm the last snapshot is labelled with a refresh error.
 8. **Responsive use:** check navigation, fleet search, drawers and modals on desktop and a narrow mobile viewport. Test keyboard focus and record accessibility issues; a full accessibility assessment remains open.
 
@@ -77,4 +77,7 @@ Record pass/fail, browser, commit and evidence for each item:
 
 Include commit SHA, mode (demo/local authenticated), role, fictional tenant/fleet/job reference, browser, steps, expected/actual results and redacted screenshot. Include API status/request ID when available. Never include keys, cookies, signed download URLs or test-account fixtures. CI retains Playwright traces on failures; treat traces as private because they can contain session data.
 
-Ready for a controlled pilot only after acceptance results are reviewed and the remaining gates in SECOND-REMEDIATION.md are addressed. Current limits include 1,000-record workspace caps, no complete historical SLA reporting, unfinished incident/reminder workflows, native provider adapters, file scanning/orphan reconciliation, production backup/restore, monitoring and independent security/load tests.
+Ready for a controlled pilot only after acceptance results are reviewed and the remaining gates in SECOND-REMEDIATION.md are addressed. Current limits include 1,000-record workspace caps, no complete historical SLA reporting, external reminder/escalation delivery and advanced shift workflows, native provider adapters, file scanning/orphan reconciliation, production backup/restore, monitoring and independent security/load tests.
+
+
+Current regression coverage and migration contracts are listed in [Operational remediation](THIRD-REMEDIATION.md). In UAT, also edit a preview while approval is pending, advance the browser clock across ETA/approval/update due boundaries, acknowledge/own/resolve an incident, and verify one explicit company is required for handovers/access/summaries. For datasets over 1,000 records, use All records and a complete CSV; the overview remains bounded.

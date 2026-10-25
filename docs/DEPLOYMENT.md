@@ -28,13 +28,15 @@ supabase db push
 
 For an intentionally disposable local project only, `supabase db reset` rebuilds the database and deletes its data. Do not use it as a migration step on tester, staging or production records.
 
-Migrations `001_foundation.sql` through `012_coherent_workspace_and_creation.sql` create data, policies, private storage and worker functions. Run in staging first. Do not apply this rebuild to the previous application's database.
+Migrations `001_foundation.sql` through `015_complete_records.sql` create data, policies, private storage and worker functions. Run in staging first. Do not apply this rebuild to the previous application's database.
 
 Provision tenants and Auth users through the Supabase admin dashboard. Insert explicit membership rows as a trusted administrator. Roles: admin/controller/customer_admin/customer_viewer. Customer admins create jobs/upload documents and manage customer-role membership for existing Auth identities using Team & access. Identity provisioning and email invitations remain an administrator task. Do not grant them service-role access. Disable public signup in remote Auth settings and configure application URL/callback allowlists. No default password or automatically privileged account exists.
 
 ## Application host
 
 Deploy to a Node.js host compatible with Next.js 16. Set secrets, install dependencies, run all checks, then `npm run build` / `npm start`. Use TLS. Configure request-body limits (11 MB), request timeouts and platform-level webhook rate limiting. Use separate staging and production projects. Do not enable fictional demo mode on a production hostname; configure Supabase before release.
+
+Apply the [operational integrity rollout](THIRD-REMEDIATION.md) for migrations 013–015 and the changed approval/incident API contracts.
 
 ## Background jobs
 

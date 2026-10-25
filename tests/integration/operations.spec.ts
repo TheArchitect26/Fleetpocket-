@@ -96,3 +96,9 @@ test('record paging and complete export enforce customer scope',async({page})=>{
  expect((await page.request.get(`/api/records?collection=jobs&tenant_id=${f.tenants[1]}`)).status()).toBe(403);
  const csv=await page.request.get(`/api/reports?tenant_id=${f.tenants[0]}`);expect(csv.status()).toBe(200);expect(await csv.text()).toContain('Integration collection');expect((await page.request.get(`/api/reports?tenant_id=${f.tenants[1]}`)).status()).toBe(403);
 });
+test('incident acknowledgement, ownership and resolution remain distinct over monitor runs',async({page,request})=>{
+ const response=await request.post('/api/monitor',{headers:{Authorization:`Bearer ${process.env.CRON_SECRET}`}});expect(response.status()).toBe(200);
+ await login(page);await page.getByRole('button',{name:'Incidents',exact:false}).first().click();const row=page.locator('.incident-row').filter({hasText:'Stale GPS signal'});await expect(row).toHaveCount(1);
+ await row.getByRole('button',{name:'Acknowledge',exact:true}).click();await expect(row).toContainText('acknowledged');await row.getByRole('button',{name:'Take ownership'}).click();await expect(row).toContainText('Owner assigned');await row.getByRole('button',{name:'Resolve incident'}).click();const dialog=page.getByRole('dialog',{name:'Resolve incident'});await dialog.getByLabel('Resolution note').fill('Driver contacted; test exception approved');await dialog.getByRole('button',{name:'Record resolution'}).click();await expect(dialog).toHaveCount(0);await expect(row).toContainText('resolved');
+ expect((await request.post('/api/monitor',{headers:{Authorization:`Bearer ${process.env.CRON_SECRET}`}})).status()).toBe(200);const data=await (await page.request.get('/api/workspace')).json();const gps=data.alerts.filter((a:{title:string})=>a.title==='Stale GPS signal');expect(gps).toHaveLength(1);expect(gps[0].status).toBe('resolved');expect(gps[0].condition_active).toBe(true);
+});

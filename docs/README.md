@@ -13,6 +13,8 @@ Start with [what Fleet Pocket does](../README.md). These documents describe the 
 | [Latest audit](AUDIT-2026-10-25.md) | Product and engineering: findings, evidence, severity and acceptance checks. |
 | [Roadmap](ROADMAP.md) | Delivery planning: ordered work and release gates. |
 
+Current implementation follow-up: [operational integrity remediation](THIRD-REMEDIATION.md). It supersedes the open priority findings in the historical audit where explicitly listed.
+
 ## Technical reference
 
 - [Architecture](ARCHITECTURE.md): application boundaries, tenancy, data and integrations.

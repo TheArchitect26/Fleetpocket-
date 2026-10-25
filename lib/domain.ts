@@ -36,6 +36,6 @@ export function updateTiming(update:Update|undefined,at:number){
  return {state:at>=next?'due' as const:'scheduled' as const,next};
 }
 export type ApprovedUpdate={id:string;text:string;interval_minutes:number;vehicle_id:string;job_id:string;job_version:number;valid_until:string};
-export function canShareUpdate(approval:ApprovedUpdate|null,draft:string,interval:number,vehicle:string|null,job:string|undefined,at:number,version?:number){return !!approval&&approval.text===draft&&approval.interval_minutes===interval&&approval.vehicle_id===vehicle&&approval.job_id===job&&(version===undefined||approval.job_version===version)&&Date.parse(approval.valid_until)>at;}
+export function canShareUpdate(approval:ApprovedUpdate|null,draft:string,interval:number,vehicle:string|null,job:string|undefined,at:number=Date.now(),version?:number){return !!approval&&approval.text===draft&&approval.interval_minutes===interval&&approval.vehicle_id===vehicle&&approval.job_id===job&&(version===undefined||approval.job_version===version)&&Date.parse(approval.valid_until)>at;}
 
 export function csvCell(value:unknown){const raw=String(value??'');const safe=/^[\s\p{Cc}]*[=+@-]/u.test(raw)?"'"+raw:raw;return '"'+safe.replaceAll('"','""')+'"';}

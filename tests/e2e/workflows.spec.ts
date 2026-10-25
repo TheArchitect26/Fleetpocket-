@@ -9,8 +9,11 @@ test('unauthenticated APIs fail closed',async({request})=>{for(const path of ['w
 test('expired cached ETA is never shown as within window',async({page})=>{
  await page.clock.install();
  await page.evaluate(()=>{const d=JSON.parse(localStorage.getItem('mcy-fleet-demo-v1')!);const j=d.jobs.find((j:{vehicle_id:string})=>j.vehicle_id===d.vehicles.find((v:{fleet_no:string})=>v.fleet_no==='CMT-012').id);j.eta=new Date(Date.now()+3600000).toISOString();j.scheduled_at=new Date(Date.now()+7200000).toISOString();j.eta_stop='delivery';j.eta_valid_until=new Date(Date.now()+2000).toISOString();localStorage.setItem('mcy-fleet-demo-v1',JSON.stringify(d));});
- await page.reload();const row=page.getByRole('row',{name:'Open CMT-012'});await expect(row).toContainText('Within delivery window');await page.clock.fastForward(16000);await expect(row).toContainText('ETA unavailable');await expect(row).not.toContainText('Within delivery window');
+ await page.reload();const row=page.getByRole('row',{name:'Open CMT-012'});await expect(row).toContainText('Within delivery window');await page.clock.fastForward(2001);await expect(row).toContainText('ETA unavailable');await expect(row).not.toContainText('Within delivery window');
 });
 test('combined workspace requires an explicit handover customer',async({page})=>{
  await page.getByRole('button',{name:'Shift handover',exact:true}).click();await expect(page.getByRole('button',{name:'Record handover'})).toBeDisabled();await page.getByLabel('Customer fleet').selectOption({label:'Ubuntu Freight Solutions'});await expect(page.getByRole('button',{name:'Record handover'})).toBeEnabled();
+});
+test('approval expires and scheduled updates become due',async({page})=>{
+ await page.clock.install();await page.getByRole('row',{name:'Open CMT-012'}).click();await page.getByRole('button',{name:'Generate Update',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Preview Update'});await dialog.getByLabel('Update interval').selectOption('30');await dialog.getByRole('button',{name:'Approve update',exact:true}).click();await expect(dialog.getByRole('button',{name:'Share to WhatsApp'})).toBeEnabled();await page.clock.fastForward(31*60000);await expect(dialog.getByRole('button',{name:'Share to WhatsApp'})).toBeDisabled();await dialog.getByLabel('Close dialog').click();await page.getByLabel('Close vehicle details').click();await page.getByRole('button',{name:'Vehicle updates',exact:true}).click();await expect(page.locator('.dispatch-card').filter({hasText:'CMT-012'})).toContainText('Update due');
 });

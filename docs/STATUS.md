@@ -1,3 +1,5 @@
+Current follow-up: [operational integrity fixes](THIRD-REMEDIATION.md) update approval, expiry, incident and record-access behavior below. The dated capability matrix remains the audit baseline; use the remediation for current implementation and verification.
+
 # Current Fleet Pocket status
 
 Reviewed 25 October 2026 against local application commit `8e8d222` and its published equivalent `021e1b37021b96bc5fb3a3064ac8eb082e0e4e5a`.
@@ -9,14 +11,14 @@ Reviewed 25 October 2026 against local application commit `8e8d222` and its publ
 | Area | Implemented | Remaining or important limit |
 |---|---|---|
 | Customer isolation | Tenant memberships, per-company access, RLS, scoped references, staff/customer roles and isolation tests. | Invitation/provisioning UX, MFA/password recovery, finer personal/document permissions and independent security testing. |
-| Control tower | Authorised fleet selector, vehicle groups/search, map/drawer, 15-second polling and preserved viewport. | Server pagination, trustworthy connection/shift states, metric labels and explicit combined-tenant action selection. |
-| Fleet and drivers | Create vehicle/driver, trailer options, groups, contacts and profile history. | Editing, reassignment, deactivation, imports and driver-document workflows. |
+| Control tower | Authorised fleet selector, vehicle groups/search, map/drawer, 15-second polling and preserved viewport. | Bounded overview window, richer paged operating actions, trustworthy provider/shift states and live capacity acceptance. |
+| Fleet and drivers | Create vehicle/driver, trailer options, groups, contacts, profile history and complete paged access. | Editing, reassignment, deactivation, imports and driver-document workflows. |
 | Dispatch | Full ordered lifecycle, optimistic versions, one live assignment per vehicle, exceptions/resolution, physical-load synchronisation and idempotent job creation. | Route/job editing, controller selection, driver acceptance, configurable exception/cargo-recovery workflows. |
 | Documents/POD | Private PDF/image upload, short-lived previews, matched verified-POD guard, verification and explicit eligible customer release. | Scanning, orphan reconciliation, replacement/revocation workflow, custom kinds and full driver-expiry coverage. |
-| Tracking/ETA | Authenticated normalised GPS, retained history, coalesced durable work, fenced leases, bounded worker drain, queue retry/health, stop/source metadata and separately reviewed publication. | Native provider connections, scheduler deployment, sustained multi-worker/load acceptance and consistent browser expiry presentation. |
-| Vehicle updates | MCY preview, approval action, manual Copy/Share, history and interval metadata. | Approval/edit race, immutable versioned approval, due/overdue state, reminders and delivery evidence. |
-| Incidents/handover | Rule-based alerts, acknowledgement, job exceptions and free-text audit handovers. | Incident owner/resolution/reopening, stale-alert reconciliation, missing-POD alerts and structured shift sign-off. |
-| Reporting | Scoped snapshot CSV, delivery-forecast/unknown counts and workload summary. | Complete exports, historical SLA evidence, actual-duty status and stronger CSV formula neutralisation. |
+| Tracking/ETA | Authenticated normalised GPS, retained history, coalesced durable work, fenced leases, bounded worker drain, queue retry/health, stop/source metadata and separately reviewed publication. | Native provider connections, scheduler deployment, sustained multi-worker/load acceptance and sustained provider acceptance and host operation. |
+| Vehicle updates | MCY preview, approval action, manual Copy/Share, history and interval metadata. | External reminder delivery and WhatsApp delivery evidence. Exact approval, due/overdue state and monitor reminder incidents are now implemented. |
+| Incidents/handover | Stable conditions, acknowledgement, ownership, resolution/recurrence, due-update/driver/POD alerts, job exceptions and independent handover history. | External escalation/delivery, review of legacy alerts and structured shift sign-off. |
+| Reporting | Complete scoped CSV, paged records, delivery-forecast/unknown counts and workload-only labels. | Historical SLA evidence, actual-duty status and very-large asynchronous export/capacity acceptance. |
 | AI | Server-side optional provider with explicit rules fallback. | Event/anomaly interpretation, richer operational context, evaluation and review workflow. |
 | Testing | Demo and authenticated launchers, fictional accounts, local TLS routing fixture, tests and acceptance guide. | Hosted UAT environment, live-provider, sustained load/concurrency, restore, accessibility and independent penetration testing. |
 

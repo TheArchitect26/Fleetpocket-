@@ -1,3 +1,5 @@
+Implementation follow-up: [operational integrity remediation](THIRD-REMEDIATION.md) implements milestone 1 and complete record access/export. Remaining overview/scale and deployment limits are stated there; the original planning sequence follows.
+
 # What comes next
 
 Fleet Pocket can enter controlled fictional-data UAT now using [the testing handover](TESTING.md). The next engineering milestone should make the operational information and approvals dependable before adding more modules. Priorities reference the [25 October audit](AUDIT-2026-10-25.md).

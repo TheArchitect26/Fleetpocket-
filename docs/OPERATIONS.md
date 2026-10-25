@@ -9,7 +9,7 @@ An administrator provisions the account and assigns memberships to specific tran
 | Role | Current permissions within an authorised company |
 |---|---|
 | MCY administrator | Operational control and customer-role membership management. |
-| Controller | Fleet creation, dispatch, verification/release, ETA/update approval, alert acknowledgement and handovers. |
+| Controller | Fleet creation, dispatch, verification/release, ETA/update approval, incident ownership/resolution and handovers. |
 | Customer administrator | Job submission, document uploads, own-upload visibility, released documents/reviewed ETAs and customer-role membership management. |
 | Customer viewer | Read permitted fleet/job records, reviewed ETAs and released eligible documents. |
 
@@ -39,7 +39,7 @@ An assigned job records the acting controller. There is no workload-based reassi
 
 ## End of shift
 
-Select one customer before writing a handover. Record outstanding jobs, missing PODs, exceptions, people to contact, latest confirmed information and next actions. Confirm incoming coverage outside the app. Acknowledging an alert does not resolve it; an audit note does not create an assigned task or incoming sign-off.
+Select one customer before writing a handover. Record outstanding jobs, missing PODs, exceptions, people to contact, latest confirmed information and next actions. Confirm incoming coverage outside the app. Acknowledging an alert does not resolve it. Use Take ownership and Record resolution for incidents; a handover note still does not create incoming shift sign-off.
 
 Do not include passwords, signed file links or unnecessary personal details in handover text. Retention/access arrangements for driver contacts, location history and audit records need an agreed policy before live use.
 
@@ -52,6 +52,6 @@ Use a dedicated test project and test hostname with fictional data first. The te
 - An authorised tracking connection with tested provider signatures/vehicle mapping, stale/out-of-order handling and outage recovery. The current gateway accepts a normalised schema; it is not a native Cartrack, Netstar or MiX adapter.
 - An agreed routing service and capacity, plus MCY acceptance of ETA freshness, review, material-change and expiry rules.
 - Private-file handling, scanning/reconciliation arrangements, retention, backup of both database and file contents, and a successful restore rehearsal.
-- Monitoring, escalation contacts, incident ownership, rollout/rollback procedure and recorded UAT results.
+- Monitoring, escalation contacts, incident escalation, rollout/rollback procedure and recorded UAT results.
 
 These are unfulfilled release gates, not a list of already deployed services. The [roadmap](ROADMAP.md) orders the implementation and acceptance work.

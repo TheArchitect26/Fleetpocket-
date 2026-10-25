@@ -16,7 +16,7 @@ Each transport company has its own fleet and records. MCY staff can switch betwe
 | Tracking and ETAs | View the last received GPS position and its timestamp. Calculate road-based arrival estimates to the active loading or delivery stop when a tracking connection is configured. Review an estimate before customer publication. |
 | Vehicle updates | Generate the MCY WhatsApp template from the vehicle and job, review the text, approve it, and copy it or open WhatsApp for a manual send. View saved update history. |
 | Documents and PODs | Upload private PDF or image documents, preview them, verify delivery evidence, and release eligible documents to customer users. A matching verified POD is required before the delivery paperwork stages can finish. |
-| Incidents and handovers | Review operational alerts, acknowledge them, inspect job exceptions and record notes for the next controller. |
+| Incidents and handovers | Review incidents, acknowledge them, take ownership, record resolutions, inspect job exceptions and leave shift notes. |
 | Reports | Review the current fleet snapshot, delivery forecasts and controller workload, and export the selected workspace to CSV. |
 | Operations summary | Request a short summary of alert counts. When AI is unavailable, use the clearly labelled rules summary and check the original records. |
 | Customer portal | Let authorised customer users follow their fleet, see reviewed arrival estimates and access released delivery documents. Customer administrators can submit jobs and manage customer access for existing accounts. |
@@ -42,11 +42,13 @@ A GPS position is the last received reading, not a continuously moving estimate 
 
 Reports currently describe the available workspace snapshot. They are not historical delivery-performance or contractual SLA reports. Saving or sharing an update does not prove that a WhatsApp message was delivered.
 
+See the [operational fixes](docs/THIRD-REMEDIATION.md) for the latest approval, expiry, incident and record-access changes.
+
 ## Current availability
 
 Fleet Pocket is available as a **controlled local testing candidate**. A fictional demonstration includes three transport companies and twelve vehicles. The authenticated test workspace exercises actual sign-in, company isolation, dispatch and private document handling with fictional accounts and local test services.
 
-A hosted preview and live tracking connections have not been configured. Automatic WhatsApp sending and reminder delivery are not implemented. Fleet editing, complete incident management, large-record pagination and production operating controls remain unfinished. The [current status](docs/STATUS.md) and [latest audit](docs/AUDIT-2026-10-25.md) describe these limits, including known issues testers should record.
+A hosted preview and live tracking connections have not been configured. Automatic WhatsApp sending and external reminder delivery are not implemented. Incident ownership/resolution, due-update queue entries and paginated record access are now available; fleet editing and production operating controls remain unfinished. The [current status](docs/STATUS.md) and [latest audit](docs/AUDIT-2026-10-25.md) describe these limits, including known issues testers should record.
 
 ## Learn more
 
