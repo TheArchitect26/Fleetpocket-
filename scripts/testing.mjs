@@ -18,10 +18,11 @@ if(mode==='check'){console.log('Local prerequisites passed. Authenticated testin
 const env={...process.env,DEMO_MODE:'true',APP_ORIGIN:'http://127.0.0.1:3000'};
 for(const key of ['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY','CRON_SECRET','TRACKING_WEBHOOK_SECRET','TRACKING_TENANT_ID','AI_API_KEY','AI_BASE_URL','AI_MODEL','ROUTING_BASE_URL'])delete env[key];
 const children=new Set();let temporary;
-function run(command,args,options={}){return new Promise((resolve,reject)=>{const child=spawn(command,args,{env,stdio:'inherit',...options});children.add(child);child.on('error',reject);child.on('exit',code=>{children.delete(child);code===0?resolve():reject(new Error(`${command} exited ${code}`));});});}
+function stopChildren(){for(const child of children){try{if(process.platform==='win32')child.kill('SIGTERM');else process.kill(-child.pid,'SIGTERM');}catch{ /* Child already exited. */ }}}
+function run(command,args,options={}){return new Promise((resolve,reject)=>{const child=spawn(command,args,{env,stdio:'inherit',detached:process.platform!=='win32',...options});children.add(child);child.on('error',reject);child.on('exit',code=>{children.delete(child);code===0?resolve():reject(new Error(`${command} exited ${code}`));});});}
 function capture(command,args){const r=spawnSync(command,args,{env,encoding:'utf8'});if(r.status!==0)throw new Error(`${command} failed; check local Supabase is running`);return r.stdout;}
 async function loadEnv(path){for(const line of (await readFile(path,'utf8')).split('\n')){const i=line.indexOf('=');if(i>0)env[line.slice(0,i)]=line.slice(i+1);}}
-for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{for(const child of children)child.kill('SIGTERM');process.exitCode=130;});
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopChildren();process.exitCode=130;});
 try{
  if(mode==='demo'){console.log('Fictional browser-local demonstration: http://127.0.0.1:3000');await run('npm',['run','dev']);}
  else{
@@ -38,8 +39,8 @@ try{
   else{
    console.log('Authenticated test workspace: http://127.0.0.1:3100/login\nLocal test accounts: tests/.integration-fixtures.json (private; do not share).\nRouting is a local deterministic substitute. No live GPS or messaging. Ctrl+C stops the app; Supabase remains running.');
    const routing=run('node',['scripts/routing-fixture.mjs']);const app=run('npm',['run','start','--','--port','3100']);
-   await Promise.race([routing,app]);for(const child of children)child.kill('SIGTERM');await Promise.allSettled([routing,app]);
+   await Promise.race([routing,app]);stopChildren();await Promise.allSettled([routing,app]);
   }
  }
 }catch(error){console.error(error.message);process.exitCode=1;}
-finally{for(const child of children)child.kill('SIGTERM');if(temporary)await rm(temporary,{recursive:true,force:true});}
+finally{stopChildren();if(temporary)await rm(temporary,{recursive:true,force:true});}

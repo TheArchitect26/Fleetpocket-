@@ -61,15 +61,8 @@ jobs:
         with:
           version: latest
           github-token: ${{ github.token }}
-      - run: supabase start > /tmp/fleet-supabase-start.log 2>&1
-      - run: supabase status -o env > /tmp/fleet-supabase.env
-      - name: Local routing fixture TLS certificate
-        run: openssl req -x509 -newkey rsa:2048 -nodes -keyout /tmp/fleet-routing-key.pem -out /tmp/fleet-routing-cert.pem -days 1 -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
-      - run: node scripts/configure-integration.mjs
-      - run: node scripts/seed-integration.mjs
-      - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --config=playwright.integration.config.ts
+      - run: npm run test:integration
       - name: Integration failure context
         if: failure()
         run: find test-results -name error-context.md -exec cat {} \; || true
